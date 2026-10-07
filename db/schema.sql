@@ -62,7 +62,9 @@ create table if not exists providers (
   -- status = 'approved' AND subscription_end is not null AND > now().
   subscription_end timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- One business per login (NULL user_ids unaffected: demo/seed rows share no user).
+  unique(user_id)
 );
 create index if not exists providers_category_idx on providers(category);
 create index if not exists providers_status_idx on providers(status);

@@ -9,24 +9,31 @@
 
 ## Data model
 
-`supabase/migrations/0001_init.sql`:
+Canonical schema: `db/schema.sql` (plain Postgres — local Docker for dev,
+managed Postgres for prod). The old Supabase migrations in
+`supabase/migrations/` are legacy reference only (see `supabase/LEGACY.md`).
 
-- `profiles(id uuid PK → auth.users, role: customer|provider|admin, display_name, created_at)`
-- `providers(id uuid PK, user_id → profiles, business_name, category: makeup|henna|baking, location, bio, phone, whatsapp, instagram, status: pending|approved|rejected, created_at, updated_at)`
+`db/schema.sql` (tables):
+
+- `users(id uuid PK, email UNIQUE, role: customer|provider|admin, display_name, created_at)` — local demo auth, no passwords stored
+- `providers(id text PK, user_id → users UNIQUE, business_name, category: makeup|henna|baking, location, bio, phone, whatsapp, instagram, status: pending|approved|rejected, rating, reviews_count, subscription_end, created_at, updated_at)`
 - `services(id, provider_id → providers, title, description, price_kes int, unit text, image_url, created_at)`
-- `portfolio_items(id, provider_id, image_url, caption, created_at)` — file type/size validated in app + Storage policy (jpg/png/webp, ≤5MB)
+- `portfolio_items(id, provider_id, image_url, caption, created_at)` — file type/size validated in app + API (jpg/png/webp, ≤5MB)
 - `subscriptions(id, provider_id, period_start timestamptz, period_end timestamptz, status: pending|active|expired, created_at)` — periods stored explicitly
 - `payment_attempts(id, provider_id, subscription_id nullable, amount_kes int, phone_msisdn text, transaction_reference text UNIQUE, mpesa_receipt nullable, status: initiated|confirmed|failed|duplicate, raw_callback jsonb, created_at)` — every attempt recorded
-- `admin_audit(id, admin_id → profiles, action text, target_type text, target_id text, metadata jsonb, created_at)` — append-only
+- `admin_audit(id, admin_email, action, target, created_at)` — append-only
+- `appointments(id text PK, provider_id → providers, customer_name, customer_phone, starts_at, ends_at nullable, notes, status: pending|accepted|declined|rescheduled|cancelled, proposed_starts_at nullable, decided_at nullable, created_at, updated_at)` — no deletes, cancel via status
 
-Public visibility rule: `providers.status = 'approved'` AND EXISTS active subscription (`period_start <= now() < period_end`, `status='active'`).
+Public visibility rule: `providers.status = 'approved'` AND `subscription_end` is not null AND `> now()` (see `is_provider_visible(pid text)` in schema, mirrors `lib/directory.ts`).
 
-## RLS (enforced in DB, mirrored in app queries)
+## Access control (enforced in the Next.js API layer, not RLS)
 
-- `providers`: public SELECT only where visible (via `is_provider_visible()`); providers UPDATE own row only; admin full access via `is_admin()`.
-- `services`, `portfolio_items`: public SELECT only for visible providers; owner write only.
-- `subscriptions`, `payment_attempts`: owner read own; write via service role only (API route). Never via anon client.
-- `admin_audit`: admin read; insert via service role only.
+- `GET /api/providers`: public, visible providers only (with services + portfolio)
+- `POST /api/providers`: open join → `pending` row (admin approval required)
+- `GET/POST /api/appointments`: guest booking allowed only for visible providers
+- `PATCH /api/appointments/[id]`: provider decisions (accept/decline/propose/confirm/cancel)
+- `subscriptions`, `payment_attempts`: written server-side only (M-Pesa routes). Never via anon client.
+- `admin_audit`: append-only; admin reads.
 
 ## M-Pesa flow (idempotent, server-verified)
 
