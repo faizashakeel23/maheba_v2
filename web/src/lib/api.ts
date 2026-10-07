@@ -47,6 +47,135 @@ export type BookingResult =
   | { ok: true; booking: Appointment }
   | { ok: false; error: string; offline?: boolean };
 
+export type DecisionInput =
+  | { kind: "accept" }
+  | { kind: "decline" }
+  | { kind: "propose"; proposed_starts_at: string }
+  | { kind: "confirm_new_time" }
+  | { kind: "cancel" };
+
+/** Provider join submission. Offline flag → save to the demo store. */
+export async function submitJoin(input: {
+  business_name: string;
+  category: string;
+  location: string;
+  bio: string;
+  phone: string;
+  whatsapp: string;
+  instagram: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string; offline?: boolean }> {
+  try {
+    const res = await fetch("/api/providers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await readJson(res)) as { error?: string; id?: string } | null;
+    if (!res.ok) {
+      if (res.status === 503) return { ok: false, error: "", offline: true };
+      return { ok: false, error: data?.error ?? "Submission failed, pretty." };
+    }
+    return { ok: true, id: String(data?.id ?? "") };
+  } catch {
+    return { ok: false, error: "", offline: true };
+  }
+}
+
+/** Admin: all providers. Null = API unreachable. */
+export async function fetchAdminProviders(): Promise<Provider[] | null> {
+  try {
+    const res = await fetch("/api/admin/providers", { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await readJson(res);
+    return Array.isArray(data) ? (data as Provider[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Admin: approve / reject. Offline flag → use the demo store. */
+export async function decideProvider(
+  id: string,
+  status: "approved" | "rejected",
+  admin: string
+): Promise<{ ok: true } | { ok: false; error: string; offline?: boolean }> {
+  try {
+    const res = await fetch(
+      `/api/admin/providers/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, admin }),
+      }
+    );
+    const data = (await readJson(res)) as { error?: string } | null;
+    if (!res.ok) {
+      if (res.status === 503) return { ok: false, error: "", offline: true };
+      return { ok: false, error: data?.error ?? "Decision failed." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "", offline: true };
+  }
+}
+
+export interface AuditEntry {
+  at: string;
+  admin: string;
+  action: string;
+  target: string;
+}
+
+/** Admin audit trail. Null = API unreachable. */
+export async function fetchAudit(): Promise<AuditEntry[] | null> {
+  try {
+    const res = await fetch("/api/admin/audit", { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await readJson(res);
+    return Array.isArray(data) ? (data as AuditEntry[]) : null;
+  } catch {
+    return null;
+  }
+}
+/** Provider's appointments, earliest first. Null = API unreachable. */
+export async function fetchAppointments(
+  providerId: string
+): Promise<Appointment[] | null> {
+  try {
+    const res = await fetch(
+      `/api/appointments?provider_id=${encodeURIComponent(providerId)}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const data = await readJson(res);
+    return Array.isArray(data) ? (data as Appointment[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Provider decision on a booking. Offline flag → use the demo store. */
+export async function decideBooking(
+  id: string,
+  decision: DecisionInput
+): Promise<BookingResult> {
+  try {
+    const res = await fetch(`/api/appointments/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(decision),
+    });
+    const data = (await readJson(res)) as { error?: string } | null;
+    if (!res.ok) {
+      if (res.status === 503) return { ok: false, error: "", offline: true };
+      return { ok: false, error: data?.error ?? "Decision failed, pretty." };
+    }
+    return { ok: true, booking: data as Appointment };
+  } catch {
+    return { ok: false, error: "", offline: true };
+  }
+}
+/** Guest booking. Offline flag → save to the demo store instead. */
 export async function postBooking(input: {
   provider_id: string;
   customer_name: string;

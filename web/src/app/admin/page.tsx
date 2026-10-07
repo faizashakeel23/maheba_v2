@@ -14,6 +14,11 @@ import {
   type AuditEntry,
   type JoinSubmission,
 } from "@/lib/providers";
+import {
+  decideProvider,
+  fetchAdminProviders,
+  fetchAudit,
+} from "@/lib/api";
 import type { Provider } from "@/types";
 
 function fmt(iso: string): string {
@@ -35,9 +40,15 @@ export default function AdminPage() {
   const [audit, setAudit] = useState<AuditEntry[]>([]);
 
   useEffect(() => {
-    setProviders(getAllProviders());
+    // API (Postgres) first; local demo store when the API is unreachable.
+    // DB joins arrive as pending providers; device-local joins stay separate.
+    fetchAdminProviders().then((live) => {
+      setProviders(live ?? getAllProviders());
+    });
+    fetchAudit().then((live) => {
+      setAudit(live ?? getAudit());
+    });
     setJoins(getJoinSubmissions());
-    setAudit(getAudit());
   }, [tick, user]);
 
   if (!user) {
@@ -88,8 +99,14 @@ export default function AdminPage() {
   const pendingProviders = providers.filter((p) => p.status === "pending");
   const hidden = providers.filter((p) => !isVisible(p, new Date()));
 
-  const decide = (id: string, status: "approved" | "rejected") => {
-    setProviderStatus(id, status, user.email);
+  const decide = async (id: string, status: "approved" | "rejected") => {
+    const result = await decideProvider(id, status, user.email);
+    if (!result.ok) {
+      if (!result.offline) {
+        return;
+      }
+      setProviderStatus(id, status, user.email);
+    }
     refresh();
   };
 

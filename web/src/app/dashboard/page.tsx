@@ -9,6 +9,11 @@ import {
   getAppointments,
   statusLabel,
 } from "@/lib/appointments";
+import {
+  decideBooking,
+  fetchAppointments,
+  type DecisionInput,
+} from "@/lib/api";
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -28,20 +33,41 @@ function AppointmentCard({
   onChange: () => void;
 }) {
   const [propose, setPropose] = useState("");
+  const [err, setErr] = useState<string | null>(null);
 
-  const act = (kind: "accept" | "decline" | "confirm_new_time" | "cancel") => {
-    decideAppointment(appt.id, { kind });
+  // API (Postgres) first; fall back to this device's demo store offline.
+  const act = async (
+    kind: "accept" | "decline" | "confirm_new_time" | "cancel"
+  ) => {
+    setErr(null);
+    const result = await decideBooking(appt.id, { kind });
+    if (!result.ok) {
+      if (!result.offline) {
+        setErr(result.error);
+        return;
+      }
+      decideAppointment(appt.id, { kind });
+    }
     onChange();
   };
 
-  const sendProposal = () => {
+  const sendProposal = async () => {
     if (!propose) return;
     const iso = new Date(propose).toISOString();
     if (Date.parse(iso) <= Date.now()) return;
-    decideAppointment(appt.id, {
+    setErr(null);
+    const decision: DecisionInput = {
       kind: "propose",
       proposed_starts_at: iso,
-    });
+    };
+    const result = await decideBooking(appt.id, decision);
+    if (!result.ok) {
+      if (!result.offline) {
+        setErr(result.error);
+        return;
+      }
+      decideAppointment(appt.id, decision);
+    }
     setPropose("");
     onChange();
   };
@@ -109,6 +135,7 @@ function AppointmentCard({
           </button>
         </div>
       )}
+      {err && <p className="mt-2 text-xs font-bold text-blush-600">{err}</p>}
     </div>
   );
 }
@@ -121,8 +148,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.providerId) setAppts(getAppointments(user.providerId));
+    if (!user?.providerId) return;
+    const pid = user.providerId;
+    fetchAppointments(pid).then((live) => {
+      setAppts(live ?? getAppointments(pid));
+    });
   }, [user]);
+
+  const reload = () => {
+    if (!user?.providerId) return;
+    const pid = user.providerId;
+    fetchAppointments(pid).then((live) => {
+      setAppts(live ?? getAppointments(pid));
+    });
+  };
 
   async function pay() {
     setLoading(true);
@@ -184,7 +223,6 @@ export default function DashboardPage() {
       </main>
     );
   }
-  const providerId = user.providerId;
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -216,11 +254,7 @@ export default function DashboardPage() {
       )}
       <div className="mt-3 space-y-3">
         {appts.map((a) => (
-          <AppointmentCard
-            key={a.id}
-            appt={a}
-            onChange={() => setAppts(getAppointments(providerId))}
-          />
+          <AppointmentCard key={a.id} appt={a} onChange={reload} />
         ))}
       </div>
 

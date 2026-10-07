@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { providerSchema } from "@/lib/validation";
+import { submitJoin } from "@/lib/api";
 
 const input =
   "w-full rounded-2xl border border-blush-200 bg-blush-50/50 px-4 py-2.5 text-sm font-semibold text-plum-900 placeholder:text-plum-500/50 outline-none focus:border-blush-400 focus:ring-2 focus:ring-blush-200";
@@ -9,9 +10,10 @@ const input =
 export default function JoinPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const parsed = providerSchema.safeParse({
       business_name: String(fd.get("business_name") ?? ""),
       category: String(fd.get("category") ?? ""),
@@ -25,13 +27,21 @@ export default function JoinPage() {
       setMsg(parsed.error.issues.map((i) => i.message).join(" "));
       return;
     }
-    const pending = JSON.parse(localStorage.getItem("maheba_pending") ?? "[]");
-    pending.push({ ...parsed.data, id: `pending-${Date.now()}`, status: "pending" });
-    localStorage.setItem("maheba_pending", JSON.stringify(pending));
+    // API (Postgres) first; fall back to this device's demo store offline.
+    const result = await submitJoin(parsed.data);
+    if (!result.ok) {
+      if (!result.offline) {
+        setMsg(result.error);
+        return;
+      }
+      const pending = JSON.parse(localStorage.getItem("maheba_pending") ?? "[]");
+      pending.push({ ...parsed.data, id: `pending-${Date.now()}`, status: "pending" });
+      localStorage.setItem("maheba_pending", JSON.stringify(pending));
+    }
     setMsg(
       "Yay, submitted! ♡ Your profile is pending approval. You'll appear publicly only after approval + paid subscription."
     );
-    (e.target as HTMLFormElement).reset();
+    form.reset();
   }
 
   return (
