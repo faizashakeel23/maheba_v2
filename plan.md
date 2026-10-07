@@ -16,15 +16,14 @@ Rule: nothing is "done" until verified — see skills.md completion report.
 
 ## 1. Authentication (blocks everything below)
 
-Local API + demo logins are **wide open**. Before prod:
+Local API + demo logins are **wide open**. Before prod: (web done, mobile pending)
 
-- [ ] Replace demo auth (`localStorage` / `AsyncStorage` sessions) with real accounts
-- [ ] Passwords hashed server-side only (never in client code); sessions via
-  httpOnly cookies (web) / secure token storage (mobile)
-- [ ] Roles enforced: `provider` owns own rows, `admin` gates `/admin` + audit APIs
-- [ ] `PATCH /api/appointments/[id]` requires the owning provider (or admin) —
-  currently anyone can decide anyone's booking
-- [ ] Admin join approve/reject requires admin session
+- [x] (web) Replace demo auth with real accounts — scrypt passwords + DB sessions
+- [x] (web) Passwords hashed server-side only (node:crypto scrypt, never client)
+- [x] (web) Sessions: httpOnly cookie (web) + Bearer token ready (mobile)
+- [x] (web) Roles enforced: owner-only bookings/decisions/payments, admin-only admin routes
+- [ ] (mobile) Token login + secure storage + `Authorization: Bearer` on calls
+- [x] (web) Admin join approve/reject requires admin session (audit uses session email)
 
 ## 2. API + data hardening
 

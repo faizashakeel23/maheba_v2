@@ -28,12 +28,20 @@ Public visibility rule: `providers.status = 'approved'` AND `subscription_end` i
 
 ## Access control (enforced in the Next.js API layer, not RLS)
 
-- `GET /api/providers`: public, visible providers only (with services + portfolio)
-- `POST /api/providers`: open join → `pending` row (admin approval required)
-- `GET/POST /api/appointments`: guest booking allowed only for visible providers
-- `PATCH /api/appointments/[id]`: provider decisions (accept/decline/propose/confirm/cancel)
-- `subscriptions`, `payment_attempts`: written server-side only (M-Pesa routes). Never via anon client.
-- `admin_audit`: append-only; admin reads.
+Auth: scrypt-hashed passwords in `users.password_hash`, opaque sessions in
+`sessions` (SHA-256 only stored). Web uses an httpOnly `maheba_session`
+cookie; mobile uses the login token as `Authorization: Bearer`
+(`web/src/lib/auth-server.ts`). Dev seed password is `maheba123` (never prod).
+
+- `POST /api/auth/login|logout`, `GET /api/auth/session` — login, logout, who-am-i
+- `POST /api/providers` (join) — public; creates user + pending provider in
+  one transaction, 409 on duplicate email, auto-login cookie
+- `GET /api/providers`, `GET /api/providers/[id]`, `POST /api/appointments`
+  (guest booking) — public, visible providers only
+- `GET /api/appointments`, `PATCH /api/appointments/[id]` — owning provider or admin (401/403 otherwise)
+- `POST /api/mpesa/stk-push` — owning provider or admin
+- `/api/admin/*` — admin role only (401/403 otherwise); decisions audit-logged
+  with the session email (never a client-supplied one)
 
 ## M-Pesa flow (idempotent, server-verified)
 

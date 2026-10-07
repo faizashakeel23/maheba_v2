@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
+// Same shape as before, now backed by real DB sessions instead of demo picks.
 export type DemoRole = "provider" | "admin";
 
 export interface DemoUser {
@@ -19,69 +20,84 @@ export interface DemoUser {
   businessName: string;
 }
 
-const KEY = "maheba_demo_session";
-
 interface AuthCtx {
   user: DemoUser | null;
-  loginProvider: (email: string, providerId: string, businessName: string) => void;
-  loginAdmin: (email: string) => void;
-  logout: () => void;
+  loading: boolean;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ user: DemoUser } | { error: string }>;
+  logout: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx>({
   user: null,
-  loginProvider: () => {},
-  loginAdmin: () => {},
-  logout: () => {},
+  loading: true,
+  login: async () => ({ error: "Auth not ready." }),
+  logout: async () => {},
 });
+
+function toUser(raw: unknown): DemoUser | null {
+  if (!raw || typeof raw !== "object") return null;
+  const u = raw as Record<string, unknown>;
+  if (u.role !== "provider" && u.role !== "admin") return null;
+  return {
+    id: String(u.id ?? ""),
+    email: String(u.email ?? ""),
+    role: u.role,
+    providerId:
+      u.providerId == null ? null : String(u.providerId as string),
+    businessName: String((u.businessName as string) ?? ""),
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<DemoUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setUser(JSON.parse(raw));
-    } catch {
-      /* no session */
-    }
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setUser(toUser((d as { user?: unknown }).user)))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const persist = (u: DemoUser) => {
-    localStorage.setItem(KEY, JSON.stringify(u));
-    setUser(u);
-  };
-
-  const loginProvider = useCallback(
-    (email: string, providerId: string, businessName: string) => {
-      persist({
-        id: `demo-${providerId}`,
-        email,
-        role: "provider",
-        providerId,
-        businessName,
-      });
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = (await res.json().catch(() => null)) as {
+          error?: string;
+          user?: unknown;
+        } | null;
+        if (!res.ok) return { error: data?.error ?? "Login failed, pretty." };
+        const u = toUser(data?.user);
+        if (!u) return { error: "Login failed, pretty." };
+        setUser(u);
+        return { user: u };
+      } catch {
+        return { error: "Network error. Is the server running?" };
+      }
     },
     []
   );
 
-  const loginAdmin = useCallback((email: string) => {
-    persist({
-      id: "demo-admin",
-      email,
-      role: "admin",
-      providerId: null,
-      businessName: "Maheba Admin",
-    });
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(KEY);
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      /* already out */
+    }
     setUser(null);
   }, []);
 
   return (
-    <Ctx.Provider value={{ user, loginProvider, loginAdmin, logout }}>
+    <Ctx.Provider value={{ user, loading, login, logout }}>
       {children}
     </Ctx.Provider>
   );

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getRequestUser } from "@/lib/auth-server";
 
 /**
  * Admin: approve / reject a provider. Approving a join (no subscription yet)
@@ -19,9 +20,15 @@ export async function PATCH(
     );
   }
   const { id } = await params;
+  const requester = await getRequestUser(req);
+  if (!requester || requester.role !== "admin") {
+    return NextResponse.json(
+      { error: "Admins only." },
+      { status: requester ? 403 : 401 }
+    );
+  }
   const body = (await req.json().catch(() => null)) as {
     status?: string;
-    admin?: string;
   } | null;
   if (body?.status !== "approved" && body?.status !== "rejected") {
     return NextResponse.json(
@@ -29,10 +36,7 @@ export async function PATCH(
       { status: 400 }
     );
   }
-  const admin =
-    typeof body.admin === "string" && body.admin.includes("@")
-      ? body.admin
-      : "admin@maheba.local";
+  const admin = requester.email;
   const rows = await sql`
     update providers
     set status = ${body.status},

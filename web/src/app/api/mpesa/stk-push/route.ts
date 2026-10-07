@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { stkPushSchema } from "@/lib/validation";
 import { newTransactionReference } from "@/lib/mpesa";
+import { getRequestUser, ownsProvider } from "@/lib/auth-server";
 
 /**
  * Trusted backend: initiates M-Pesa STK push.
@@ -18,6 +19,15 @@ export async function POST(req: Request) {
   }
 
   const transaction_reference = newTransactionReference();
+
+  // Only the owning provider (or admin) may pay for a subscription.
+  const user = await getRequestUser(req);
+  if (!user || !(await ownsProvider(user, parsed.data.provider_id))) {
+    return NextResponse.json(
+      { error: "Log in as the owning provider to pay." },
+      { status: user ? 403 : 401 }
+    );
+  }
 
   // TODO (Supabase wiring): insert into payment_attempts with status
   // 'initiated' using the SERVICE ROLE key, then call Daraja STK push

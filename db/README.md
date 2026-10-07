@@ -35,6 +35,13 @@ npm install
 npm run dev
 ```
 
+### Dev logins (seed only — password `maheba123` for every seed account)
+
+- Admin: `admin@maheba.local`
+- Providers: `glam-by-zawadi@maheba.local`, `face-by-amara@maheba.local`, … (one per business)
+- Never use these on production. Prod starts with an empty `users` table;
+  real accounts come from Join (email + password, scrypt-hashed).
+
 The new API routes use it (503 with a clear message if it can't connect):
 
 - `GET /api/providers` — public feed (approved + paid-up, with services + portfolio)

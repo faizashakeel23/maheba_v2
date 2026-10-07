@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { providerSchema } from "@/lib/validation";
+import {
+  createSession,
+  hashPassword,
+  sessionCookieHeader,
+} from "@/lib/auth-server";
 import {
   toProvider,
   type PortfolioRow,
@@ -54,7 +60,13 @@ export async function GET() {
   );
 }
 
-/** Provider join submission → pending row (admin approves in dashboard). */
+const joinSchema = providerSchema.extend({
+  email: z.string().email("Enter a valid email for your login."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+});
+
+/** Provider join: creates a login account + pending provider in one
+ *  transaction, and logs the new provider straight in. */
 export async function POST(req: Request) {
   const sql = getDb();
   if (!sql) {
@@ -64,7 +76,7 @@ export async function POST(req: Request) {
     );
   }
   const body = await req.json().catch(() => null);
-  const parsed = providerSchema.safeParse(body);
+  const parsed = joinSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues.map((i) => i.message).join(" ") },
@@ -72,13 +84,36 @@ export async function POST(req: Request) {
     );
   }
   const d = parsed.data;
-  const id = uid();
-  await sql`
-    insert into providers
-      (id, business_name, category, location, bio, phone, whatsapp, instagram, status)
-    values
-      (${id}, ${d.business_name}, ${d.category}, ${d.location}, ${d.bio},
-       ${d.phone}, ${d.whatsapp}, ${d.instagram}, 'pending')
+  const email = d.email.trim().toLowerCase();
+  const taken = await sql`
+    select 1 from users where email = ${email}
   `;
-  return NextResponse.json({ id, status: "pending" }, { status: 201 });
+  if (taken.length > 0) {
+    return NextResponse.json(
+      { error: "That email is already registered — log in instead ♡" },
+      { status: 409 }
+    );
+  }
+  const id = uid();
+  const passwordHash = await hashPassword(d.password);
+  const userId = await sql.begin(async (tx) => {
+    const users = await tx`
+      insert into users (email, role, display_name, password_hash)
+      values (${email}, 'provider', ${d.business_name}, ${passwordHash})
+      returning id
+    `;
+    const newId = (users[0] as { id: string }).id;
+    await tx`
+      insert into providers
+        (id, user_id, business_name, category, location, bio, phone, whatsapp, instagram, status)
+      values
+        (${id}, ${newId}, ${d.business_name}, ${d.category}, ${d.location},
+         ${d.bio}, ${d.phone}, ${d.whatsapp}, ${d.instagram}, 'pending')
+    `;
+    return newId;
+  });
+  const token = await createSession(userId);
+  const res = NextResponse.json({ id, status: "pending" }, { status: 201 });
+  res.headers.append("Set-Cookie", sessionCookieHeader(token));
+  return res;
 }

@@ -120,3 +120,9 @@ insert into appointments (id, provider_id, customer_name, customer_phone, starts
    date_trunc('day', now() + interval '2 days') + interval '14 hours',
    'Party glam for 2', 'pending')
 on conflict (id) do nothing;
+
+-- DEV-ONLY passwords: every seed account uses `maheba123`.
+-- Never run this seed on production. Prod accounts set real passwords
+-- via signup. Hash format: scrypt$<salt-hex>$<hash-hex>.
+update users set password_hash = 'scrypt$ea9ebffd916ee3a44e537fe752e0432b$4dd0906aaa6f4b60c47bd97c3a9916a6fda3311f464765e3b803d7d6e5e71a1536ec2fc48cbf3a9fe88e40d853b07381fa2c9e629b7add1049c345e485847076'
+where password_hash is null;

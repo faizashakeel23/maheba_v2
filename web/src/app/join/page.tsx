@@ -23,12 +23,22 @@ export default function JoinPage() {
       whatsapp: String(fd.get("whatsapp") ?? ""),
       instagram: String(fd.get("instagram") ?? ""),
     });
+    const email = String(fd.get("email") ?? "").trim();
+    const password = String(fd.get("password") ?? "");
     if (!parsed.success) {
       setMsg(parsed.error.issues.map((i) => i.message).join(" "));
       return;
     }
+    if (!email.includes("@")) {
+      setMsg("Enter a valid email for your login.");
+      return;
+    }
+    if (password.length < 8) {
+      setMsg("Password must be at least 8 characters.");
+      return;
+    }
     // API (Postgres) first; fall back to this device's demo store offline.
-    const result = await submitJoin(parsed.data);
+    const result = await submitJoin({ ...parsed.data, email, password });
     if (!result.ok) {
       if (!result.offline) {
         setMsg(result.error);
@@ -75,6 +85,10 @@ export default function JoinPage() {
           <input name="whatsapp" required placeholder="WhatsApp 254…" className={input} />
         </div>
         <input name="instagram" placeholder="Instagram @handle (optional)" className={input} />
+        <div className="grid grid-cols-2 gap-3">
+          <input name="email" type="email" required placeholder="Login email ✿" className={input} />
+          <input name="password" type="password" required minLength={8} placeholder="Password (8+ chars) ♡" className={input} />
+        </div>
         <button className="w-full rounded-full bg-gradient-to-r from-blush-400 to-fuchsia-400 py-3 text-sm font-extrabold text-white shadow-md shadow-blush-200 hover:opacity-90">
           Submit for approval ✿
         </button>

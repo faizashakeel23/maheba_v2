@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { appointmentSchema } from "@/lib/validation";
+import { getRequestUser, ownsProvider } from "@/lib/auth-server";
 
 function uid(): string {
   return `appt-${Date.now().toString(36)}-${Math.random()
@@ -27,6 +28,14 @@ export async function GET(req: Request) {
     return NextResponse.json(
       { error: "provider_id query param is required." },
       { status: 400 }
+    );
+  }
+  // Bookings contain customer phone numbers — owner or admin only.
+  const user = await getRequestUser(req);
+  if (!user || !(await ownsProvider(user, providerId))) {
+    return NextResponse.json(
+      { error: "Log in as the owning provider to see bookings." },
+      { status: user ? 403 : 401 }
     );
   }
   const rows = await sql.unsafe(

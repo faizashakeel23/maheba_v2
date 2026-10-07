@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { rescheduleSchema } from "@/lib/validation";
+import { getRequestUser, ownsAppointment } from "@/lib/auth-server";
 
 type Decision =
   | { kind: "accept" }
@@ -28,6 +29,13 @@ export async function PATCH(
     );
   }
   const { id } = await params;
+  const user = await getRequestUser(req);
+  if (!user || !(await ownsAppointment(user, id))) {
+    return NextResponse.json(
+      { error: "Log in as the owning provider to decide bookings." },
+      { status: user ? 403 : 401 }
+    );
+  }
   const body = (await req.json().catch(() => null)) as Decision | null;
   if (!body || !ALLOWED.includes(body.kind)) {
     return NextResponse.json(

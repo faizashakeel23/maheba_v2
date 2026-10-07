@@ -14,9 +14,11 @@ services:
       # Named volume = data survives restarts, rebuilds, and `docker compose down`.
       # Only `docker compose down -v` deletes it (then seed runs again on next up).
       - pgdata:/var/lib/postgresql/data
-      # First-time init: schema then seed. Runs ONLY when pgdata is empty.
+      # First-time init: schema then seed then migrations. Runs ONLY when pgdata is empty.
+      # Numbered so later migrations apply in order on fresh volumes.
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./db/migrations/0002_auth.sql:/docker-entrypoint-initdb.d/03-auth.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-maheba}"]
       interval: 5s

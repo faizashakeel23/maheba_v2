@@ -42,6 +42,9 @@ create table if not exists users (
   email text not null unique,
   role user_role not null default 'customer',
   display_name text,
+  -- `scrypt$<salt-hex>$<hash-hex>` (see db/migrations/0002_auth.sql).
+  -- NULL = password login disabled for this account.
+  password_hash text,
   created_at timestamptz not null default now()
 );
 
@@ -161,6 +164,17 @@ drop trigger if exists appointments_updated_at on appointments;
 create trigger appointments_updated_at
   before update on appointments
   for each row execute function set_updated_at();
+
+-- Opaque sessions (see db/migrations/0002_auth.sql). Only the SHA-256 of
+-- the login token is stored; clients hold the raw token.
+create table if not exists sessions (
+  token_hash text primary key,
+  user_id uuid not null references users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  revoked_at timestamptz
+);
+create index if not exists sessions_user_idx on sessions(user_id, expires_at);
 
 -- Public visibility rule, same as the app's isVisible(): approved + paid up.
 create or replace function is_provider_visible(pid text)

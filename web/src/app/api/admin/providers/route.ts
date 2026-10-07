@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { getRequestUser } from "@/lib/auth-server";
 import type { Provider } from "@/types";
 
 /**
  * Admin: every provider regardless of visibility, newest first.
  * (No auth yet — plan.md phase 1. Same trust level as the demo store.)
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const user = await getRequestUser(req);
+  if (!user || user.role !== "admin") {
+    return NextResponse.json(
+      { error: "Admins only." },
+      { status: user ? 403 : 401 }
+    );
+  }
   const sql = getDb();
   if (!sql) {
     return NextResponse.json(

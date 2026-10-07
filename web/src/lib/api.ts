@@ -54,7 +54,8 @@ export type DecisionInput =
   | { kind: "confirm_new_time" }
   | { kind: "cancel" };
 
-/** Provider join submission. Offline flag → save to the demo store. */
+/** Provider join submission (creates login account too).
+ *  Offline flag → save to the demo store. */
 export async function submitJoin(input: {
   business_name: string;
   category: string;
@@ -63,6 +64,8 @@ export async function submitJoin(input: {
   phone: string;
   whatsapp: string;
   instagram: string;
+  email: string;
+  password: string;
 }): Promise<{ ok: true; id: string } | { ok: false; error: string; offline?: boolean }> {
   try {
     const res = await fetch("/api/providers", {
