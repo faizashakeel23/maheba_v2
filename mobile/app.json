@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Maheba",
+    "slug": "maheba",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "maheba",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.maheba.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFE9F1",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-font"
+    ]
+  }
+}

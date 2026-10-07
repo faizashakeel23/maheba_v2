@@ -1,0 +1,77 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Girlish";
+  src: url("/fonts/Girlish.otf") format("opentype");
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@theme {
+  --font-display: "Girlish", "Playfair Display", Georgia, serif;
+  --font-body: "Nunito", ui-rounded, system-ui, sans-serif;
+  --font-script: "Girlish", "Dancing Script", cursive;
+
+  --color-blush-50: #fff6f9;
+  --color-blush-100: #ffe9f1;
+  --color-blush-200: #ffd3e3;
+  --color-blush-300: #ffb1cb;
+  --color-blush-400: #fb87ad;
+  --color-blush-500: #f45b8d;
+  --color-blush-600: #d63f72;
+  --color-blush-700: #a92e57;
+
+  --color-plum-500: #8b4a63;
+  --color-plum-700: #6d3450;
+  --color-plum-900: #4a2340;
+
+  --color-lilac-100: #f1e8ff;
+  --color-lilac-200: #e2d1fb;
+  --color-lilac-300: #c9aef3;
+
+  --color-cream-50: #fffaf7;
+}
+
+body {
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1100px 420px at 8% -5%, #ffe9f1 0%, transparent 60%),
+    radial-gradient(1000px 400px at 96% 2%, #f1e8ff 0%, transparent 55%),
+    radial-gradient(800px 500px at 50% 110%, #fff1d9 0%, transparent 60%),
+    #fffaf7;
+  background-attachment: fixed;
+  color: #4a2340;
+}
+
+::selection {
+  background: #ffd3e3;
+}
+
+.text-gradient {
+  background: linear-gradient(100deg, #f45b8d, #b44ac9 60%, #e8930c 115%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card-cute {
+  box-shadow: 0 10px 30px -14px rgba(244, 91, 141, 0.4);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.card-cute:hover {
+  box-shadow: 0 20px 44px -14px rgba(214, 63, 114, 0.45);
+  transform: translateY(-2px);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #fff6f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #ffb1cb;
+  border-radius: 999px;
+}
