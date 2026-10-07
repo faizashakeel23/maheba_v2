@@ -12,6 +12,11 @@ import {
   rejectSubmission,
   setProviderStatus,
 } from "../lib/providers";
+import {
+  decideProvider,
+  fetchAdminProviders,
+  fetchAudit,
+} from "../lib/api";
 import type { AuditEntry, JoinSubmission, Provider } from "../lib/types";
 import { Card, GText, H1, PrettyButton } from "../components/ui";
 
@@ -22,12 +27,33 @@ export default function Admin() {
   const [audit, setAudit] = useState<AuditEntry[]>([]);
 
   const reload = useCallback(() => {
-    getAllProviders().then(setProviders).catch(() => {});
+    // API (Postgres) first; local demo store when unreachable.
+    fetchAdminProviders().then((live) => {
+      if (live) {
+        setProviders(live);
+        return;
+      }
+      getAllProviders().then(setProviders).catch(() => {});
+    }).catch(() => {});
+    fetchAudit().then((live) => {
+      setAudit(live ?? []);
+    }).catch(() => {
+      getAudit().then(setAudit).catch(() => {});
+    });
     getJoinSubmissions().then(setJoins).catch(() => {});
-    getAudit().then(setAudit).catch(() => {});
   }, []);
 
   useFocusEffect(reload);
+
+  async function decide(id: string, status: "approved" | "rejected") {
+    if (!user) return;
+    const result = await decideProvider(id, status);
+    if (!result.ok) {
+      if (!result.offline) return;
+      await setProviderStatus(id, status, user.email);
+    }
+    reload();
+  }
 
   if (!user) {
     return (
@@ -83,8 +109,8 @@ export default function Admin() {
             <GText style={styles.sub}>{p.category} · {p.location}</GText>
           </View>
           <View style={styles.btns}>
-            <PrettyButton title="Approve ♡" color={COLORS.green} onPress={() => setProviderStatus(p.id, "approved", user.email).then(reload)} style={styles.half} />
-            <PrettyButton title="Reject" color={COLORS.plum} onPress={() => setProviderStatus(p.id, "rejected", user.email).then(reload)} style={styles.half} />
+            <PrettyButton title="Approve ♡" color={COLORS.green} onPress={() => decide(p.id, "approved")} style={styles.half} />
+            <PrettyButton title="Reject" color={COLORS.plum} onPress={() => decide(p.id, "rejected")} style={styles.half} />
           </View>
         </Card>
       ))}

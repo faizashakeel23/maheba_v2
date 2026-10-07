@@ -3,6 +3,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { COLORS, FONTS } from "../lib/theme";
 import { providerSchema } from "../lib/validation";
 import { saveJoinSubmission } from "../lib/providers";
+import { submitJoin } from "../lib/api";
 import { CATEGORIES } from "../lib/types";
 import type { ProviderCategory } from "../lib/types";
 import { Card, Field, GText, H1, PrettyButton } from "../components/ui";
@@ -16,6 +17,8 @@ export default function Join() {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [instagram, setInstagram] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
   async function submit() {
@@ -32,12 +35,28 @@ export default function Join() {
       setMsg(parsed.error.issues.map((i) => i.message).join(" "));
       return;
     }
-    await saveJoinSubmission({
-      ...parsed.data,
-      id: `pending-${Date.now()}`,
-    });
+    if (!email.includes("@")) {
+      setMsg("Enter a valid email for your login.");
+      return;
+    }
+    if (password.length < 8) {
+      setMsg("Password must be at least 8 characters.");
+      return;
+    }
+    // API (Postgres) first; this device's demo store when unreachable.
+    const result = await submitJoin({ ...parsed.data, email: email.trim(), password });
+    if (!result.ok) {
+      if (!result.offline) {
+        setMsg(result.error);
+        return;
+      }
+      await saveJoinSubmission({
+        ...parsed.data,
+        id: `pending-${Date.now()}`,
+      });
+    }
     setMsg("Yay, submitted! ♡ Pending admin approval — you'll appear publicly only after approval + paid subscription.");
-    setBusiness(""); setLocation(""); setBio(""); setPhone(""); setWhatsapp(""); setInstagram("");
+    setBusiness(""); setLocation(""); setBio(""); setPhone(""); setWhatsapp(""); setInstagram(""); setEmail(""); setPassword("");
     Alert.alert("Submitted ♡", "Your profile is pending admin approval.");
   }
 
@@ -77,6 +96,10 @@ export default function Join() {
         <Field value={whatsapp} onChangeText={setWhatsapp} placeholder="WhatsApp 254…" keyboard="phone-pad" />
         <View style={styles.gap} />
         <Field value={instagram} onChangeText={setInstagram} placeholder="Instagram @handle (optional)" />
+        <View style={styles.gap} />
+        <Field value={email} onChangeText={setEmail} placeholder="Login email ✿" keyboard="email-address" />
+        <View style={styles.gap} />
+        <Field value={password} onChangeText={setPassword} placeholder="Password (8+ chars) ♡" secure />
         <View style={styles.gap} />
         <PrettyButton title="Submit for approval ✿" onPress={submit} />
         {!!msg && <Text style={styles.msg}>{msg}</Text>}

@@ -13,6 +13,7 @@ import { CATEGORIES, type Provider, type ProviderCategory } from "../lib/types";
 import { CATEGORY_THEMES, COLORS, FONTS } from "../lib/theme";
 import { filterProviders, staticVisible } from "../lib/directory";
 import { getAllProviders } from "../lib/providers";
+import { fetchProviders } from "../lib/api";
 import { isVisible } from "../lib/directory";
 import { Card, GText, H1 } from "../components/ui";
 
@@ -22,8 +23,17 @@ export default function Feed() {
   const [base, setBase] = useState<Provider[]>(() => staticVisible());
 
   const reload = useCallback(() => {
-    getAllProviders()
-      .then((all) => setBase(all.filter((p) => isVisible(p))))
+    // API (Postgres) first; local demo store when unreachable.
+    fetchProviders()
+      .then((live) => {
+        if (live) {
+          setBase(live);
+          return;
+        }
+        return getAllProviders()
+          .then((all) => setBase(all.filter((p) => isVisible(p))))
+          .catch(() => {});
+      })
       .catch(() => {});
   }, []);
 

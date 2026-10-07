@@ -9,6 +9,12 @@ import {
   getAppointments,
   statusLabel,
 } from "../lib/appointments";
+import {
+  apiFetch,
+  decideBooking,
+  fetchAppointments,
+  type DecisionInput,
+} from "../lib/api";
 import { newTransactionReference } from "../lib/mpesa";
 import { Card, Field, GText, H1, PrettyButton } from "../components/ui";
 
@@ -25,10 +31,19 @@ function fmt(iso: string): string {
 function ApptCard({ appt, onChange }: { appt: Appointment; onChange: () => void }) {
   const [proposeDate, setProposeDate] = useState("");
   const [proposeTime, setProposeTime] = useState("");
+  const [err, setErr] = useState<string | null>(null);
   const pending = appt.status === "pending" || appt.status === "rescheduled";
 
   async function act(kind: "accept" | "decline" | "cancel") {
-    await decideAppointment(appt.id, { kind });
+    setErr(null);
+    const result = await decideBooking(appt.id, { kind });
+    if (!result.ok) {
+      if (!result.offline) {
+        setErr(result.error);
+        return;
+      }
+      await decideAppointment(appt.id, { kind });
+    }
     onChange();
   }
 
@@ -37,7 +52,16 @@ function ApptCard({ appt, onChange }: { appt: Appointment; onChange: () => void 
     if (Number.isNaN(Date.parse(raw))) return;
     const iso = new Date(raw).toISOString();
     if (Date.parse(iso) <= Date.now()) return;
-    await decideAppointment(appt.id, { kind: "propose", proposed_starts_at: iso });
+    setErr(null);
+    const decision: DecisionInput = { kind: "propose", proposed_starts_at: iso };
+    const result = await decideBooking(appt.id, decision);
+    if (!result.ok) {
+      if (!result.offline) {
+        setErr(result.error);
+        return;
+      }
+      await decideAppointment(appt.id, decision);
+    }
     setProposeDate("");
     setProposeTime("");
     onChange();
@@ -73,6 +97,7 @@ function ApptCard({ appt, onChange }: { appt: Appointment; onChange: () => void 
           <PrettyButton title="Propose new time ♡" color="#8B5CF6" onPress={sendProposal} />
         </>
       )}
+      {!!err && <Text style={styles.err}>{err}</Text>}
     </Card>
   );
 }
@@ -84,18 +109,53 @@ export default function Dashboard() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const reload = useCallback(() => {
-    if (user?.providerId) getAppointments(user.providerId).then(setAppts).catch(() => {});
+    if (!user?.providerId) return;
+    const pid = user.providerId;
+    // API (Postgres) first; local demo store when unreachable.
+    fetchAppointments(pid)
+      .then((live) => {
+        if (live) {
+          setAppts(live);
+          return;
+        }
+        return getAppointments(pid).then(setAppts).catch(() => {});
+      })
+      .catch(() => {});
   }, [user]);
 
   useFocusEffect(reload);
 
-  function pay() {
-    // Demo mode: mock STK push (no Daraja keys on device). Real flow calls the
-    // Next.js /api/mpesa/stk-push endpoint once the backend URL is configured.
-    const ref = newTransactionReference();
-    setMsg(
-      `STK push sent (ref ${ref}) ♡ Enter M-Pesa PIN on ${phone}. Demo mode — no real charge.`
-    );
+  async function pay() {
+    setMsg(null);
+    if (!user?.providerId) return;
+    // Real STK push through the backend (Bearer session attached).
+    // Falls back to the demo message when the API is unreachable.
+    try {
+      const res = await apiFetch("/api/mpesa/stk-push", {
+        method: "POST",
+        body: JSON.stringify({
+          provider_id: user.providerId,
+          phone_msisdn: phone.replace(/\D/g, ""),
+          amount_kes: SUBSCRIPTION_PRICE_KES,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as {
+        error?: string;
+        transaction_reference?: string;
+      } | null;
+      if (!res.ok) {
+        setMsg(data?.error ?? "Payment failed to start.");
+        return;
+      }
+      setMsg(
+        `STK push sent (ref ${data?.transaction_reference ?? newTransactionReference()}) ♡ Enter your M-Pesa PIN on ${phone}.`
+      );
+    } catch {
+      const ref = newTransactionReference();
+      setMsg(
+        `STK push sent (ref ${ref}) ♡ Enter M-Pesa PIN on ${phone}. Offline demo — no real charge.`
+      );
+    }
   }
 
   if (!user) {
@@ -187,4 +247,5 @@ const styles = StyleSheet.create({
   sub: { marginTop: 14 },
   active: { color: COLORS.greenDeep, fontWeight: "800" },
   msg: { marginTop: 10, fontWeight: "700", fontSize: 13, color: COLORS.plum },
+  err: { marginTop: 8, fontWeight: "700", fontSize: 12, color: COLORS.blushDeep },
 });

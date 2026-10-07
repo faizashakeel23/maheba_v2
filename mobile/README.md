@@ -10,6 +10,26 @@ approvals. Demo data in `src/lib` (AsyncStorage); swap for Supabase when keys ex
 2. `cd mobile` then `npx expo start`
 3. Scan the QR with **Expo Go** (Android: scan from inside the Expo Go app).
 
+## Connect to the backend (real data + real login)
+
+The app talks to the Next.js API (`web/`). Phones can't reach your PC's
+`localhost`, so set your PC's LAN IP before starting:
+
+```bash
+# find it: ipconfig (look for IPv4, e.g. 192.168.1.20)
+EXPO_PUBLIC_API_URL=http://192.168.1.20:3000 npx expo start --clear
+```
+
+On Windows PowerShell:
+
+```powershell
+$env:EXPO_PUBLIC_API_URL="http://192.168.1.20:3000"; npx.cmd expo start --clear
+```
+
+Without it, the app uses the Android-emulator default
+(`http://10.0.2.2:3000`) and silently falls back to the on-device demo
+store when unreachable. Log in with a seed account (`maheba123` password).
+
 ## Run on an Android emulator
 
 1. Android Studio → Device Manager → create a virtual device (Pixel, API 34+).

@@ -22,8 +22,12 @@ Local API + demo logins are **wide open**. Before prod: (web done, mobile pendin
 - [x] (web) Passwords hashed server-side only (node:crypto scrypt, never client)
 - [x] (web) Sessions: httpOnly cookie (web) + Bearer token ready (mobile)
 - [x] (web) Roles enforced: owner-only bookings/decisions/payments, admin-only admin routes
-- [ ] (mobile) Token login + secure storage + `Authorization: Bearer` on calls
+- [x] (mobile) Token login + AsyncStorage token + `Authorization: Bearer` on calls
+  (Expo Go compatible; production should move to expo-secure-store + dev build)
 - [x] (web) Admin join approve/reject requires admin session (audit uses session email)
+
+Phase 1 **complete**: web + mobile both authenticate against Postgres sessions;
+all data routes are owner/admin-gated with demo-store fallbacks offline.
 
 ## 2. API + data hardening
 

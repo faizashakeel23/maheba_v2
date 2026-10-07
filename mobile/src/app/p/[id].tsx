@@ -12,6 +12,7 @@ import {
 import { CATEGORY_THEMES, COLORS, FONTS } from "../../lib/theme";
 import { findById, isVisible } from "../../lib/directory";
 import { getAllProviders } from "../../lib/providers";
+import { fetchProviderById, postBooking } from "../../lib/api";
 import { appointmentSchema } from "../../lib/validation";
 import { createAppointment } from "../../lib/appointments";
 import type { Provider } from "../../lib/types";
@@ -30,10 +31,24 @@ export default function ProviderScreen() {
   const [ok, setOk] = useState(false);
 
   useEffect(() => {
-    getAllProviders()
-      .then((all) => {
-        const p = findById(all, String(id));
-        setProvider(p && isVisible(p) ? p : null);
+    const pid = String(id);
+    // API (Postgres) first; local demo store when unreachable.
+    fetchProviderById(pid)
+      .then((live) => {
+        if (live === undefined) {
+          return getAllProviders().then((all) => {
+            const p = findById(all, pid);
+            setProvider(p && isVisible(p) ? p : null);
+          });
+        }
+        if (live) {
+          setProvider(live);
+          return;
+        }
+        return getAllProviders().then((all) => {
+          const p = findById(all, pid);
+          setProvider(p && isVisible(p) ? p : null);
+        });
       })
       .catch(() => setProvider(null));
   }, [id]);
@@ -77,7 +92,15 @@ export default function ProviderScreen() {
       setMsg(parsed.error.issues.map((i) => i.message).join(" "));
       return;
     }
-    await createAppointment(parsed.data);
+    // API (Postgres) first; this device's demo store when unreachable.
+    const result = await postBooking(parsed.data);
+    if (!result.ok) {
+      if (!result.offline) {
+        setMsg(result.error);
+        return;
+      }
+      await createAppointment(parsed.data);
+    }
     setOk(true);
     setMsg(`Booked, pretty! ♡ ${date} at ${time} requested. The provider will accept or suggest another time.`);
     setName(""); setPhone(""); setDate(""); setTime(""); setNotes("");

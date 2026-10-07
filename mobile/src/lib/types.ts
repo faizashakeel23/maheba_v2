@@ -9,8 +9,8 @@ export type AppointmentStatus =
   | "rescheduled"
   | "cancelled";
 
-/** Local bundled photo (require()/import of a .jpg asset). */
-export type Img = number;
+/** Local bundled photo (require()/import) or a remote API image ({ uri }). */
+export type Img = number | { uri: string };
 
 export interface Service {
   id: string;

@@ -1,7 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiLogin, apiLogout, apiSession } from "./api";
 
+// Same shape as before, now backed by real DB sessions (Bearer token)
+// instead of demo picks. Token lives in AsyncStorage (Expo Go compatible;
+// switch to expo-secure-store with a dev build for production).
 export type DemoRole = "provider" | "admin";
 
 export interface DemoUser {
@@ -12,67 +15,50 @@ export interface DemoUser {
   businessName: string;
 }
 
-const KEY = "maheba_demo_session";
-
 interface AuthCtx {
   user: DemoUser | null;
-  loginProvider: (email: string, providerId: string, businessName: string) => Promise<void>;
-  loginAdmin: (email: string) => Promise<void>;
+  loading: boolean;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ user: DemoUser } | { error: string }>;
   logout: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx>({
   user: null,
-  loginProvider: async () => {},
-  loginAdmin: async () => {},
+  loading: true,
+  login: async () => ({ error: "Auth not ready." }),
   logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<DemoUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
-      .then((raw) => {
-        if (raw) setUser(JSON.parse(raw));
-      })
-      .catch(() => {});
+    apiSession()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const persist = async (u: DemoUser) => {
-    await AsyncStorage.setItem(KEY, JSON.stringify(u));
-    setUser(u);
-  };
-
-  const loginProvider = useCallback(
-    async (email: string, providerId: string, businessName: string) => {
-      await persist({
-        id: `demo-${providerId}`,
-        email,
-        role: "provider",
-        providerId,
-        businessName,
-      });
-    },
-    []
-  );
-
-  const loginAdmin = useCallback(async (email: string) => {
-    await persist({
-      id: "demo-admin",
-      email,
-      role: "admin",
-      providerId: null,
-      businessName: "Maheba Admin",
-    });
+  const login = useCallback(async (email: string, password: string) => {
+    const result = await apiLogin(email, password);
+    if (!result.ok) {
+      if (!result.offline) return { error: result.error };
+      return { error: "Can't reach the server. Check EXPO_PUBLIC_API_URL ♡" };
+    }
+    setUser(result.data);
+    return { user: result.data };
   }, []);
 
   const logout = useCallback(async () => {
-    await AsyncStorage.removeItem(KEY);
+    await apiLogout();
     setUser(null);
   }, []);
 
-  return <Ctx.Provider value={{ user, loginProvider, loginAdmin, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {
