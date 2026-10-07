@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { notFound } from "next/navigation";
-import { CATEGORY_THEMES } from "@/types";
+import { CATEGORY_THEMES, type Provider } from "@/types";
 import { getProviderById, isVisible } from "@/lib/directory";
+import { fetchProviderById } from "@/lib/api";
 import BookingForm from "@/components/BookingForm";
 
 function fmt(iso: string | null): string {
@@ -22,11 +23,26 @@ export default function ProviderPage({
   params: Promise<{ id: string }>;
 }) {
   const [id, setId] = useState<string | null>(null);
+  // null = loading, undefined = not found.
+  const [provider, setProvider] = useState<Provider | null | undefined>(null);
   useEffect(() => {
     params.then((p) => setId(p.id));
   }, [params]);
 
-  if (!id) {
+  useEffect(() => {
+    if (!id) return;
+    fetchProviderById(id).then((live) => {
+      if (live === undefined) {
+        // API says hidden — still honor the local demo store before 404.
+        const local = getProviderById(id);
+        setProvider(local && isVisible(local) ? local : undefined);
+      } else {
+        setProvider(live ?? getProviderById(id) ?? undefined);
+      }
+    });
+  }, [id]);
+
+  if (!id || provider === null) {
     return (
       <main className="mx-auto max-w-6xl px-4 py-16 text-center">
         <p className="font-script text-3xl text-blush-500">one sec, pretty… ♡</p>
@@ -34,8 +50,7 @@ export default function ProviderPage({
     );
   }
 
-  const provider = getProviderById(id);
-  if (!provider || !isVisible(provider)) notFound();
+  if (provider === undefined) notFound();
   const t = CATEGORY_THEMES[provider.category];
 
   const wa = `https://wa.me/${provider.whatsapp}?text=${encodeURIComponent(

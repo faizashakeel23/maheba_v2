@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { appointmentSchema } from "@/lib/validation";
 import { createAppointment } from "@/lib/appointments";
+import { postBooking } from "@/lib/api";
 
 const input =
   "w-full rounded-2xl border border-blush-200 bg-white px-4 py-2.5 text-sm font-semibold text-plum-900 outline-none focus:border-blush-400 focus:ring-2 focus:ring-blush-200";
@@ -24,10 +25,11 @@ export default function BookingForm({
     setToday(new Date().toISOString().slice(0, 10));
   }, []);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setOk(false);
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const date = String(fd.get("date") ?? "");
     const time = String(fd.get("time") ?? "");
     const parsed = appointmentSchema.safeParse({
@@ -41,12 +43,20 @@ export default function BookingForm({
       setMsg(parsed.error.issues.map((i) => i.message).join(" "));
       return;
     }
-    createAppointment(parsed.data);
+    // API (Postgres) first; fall back to this device's demo store offline.
+    const result = await postBooking(parsed.data);
+    if (!result.ok) {
+      if (!result.offline) {
+        setMsg(result.error);
+        return;
+      }
+      createAppointment(parsed.data);
+    }
     setOk(true);
     setMsg(
       `Booked, pretty! ♡ Your request for ${date} at ${time} was sent. The provider will accept or suggest another time — they'll reach you on your phone.`
     );
-    (e.target as HTMLFormElement).reset();
+    form.reset();
   }
 
   return (

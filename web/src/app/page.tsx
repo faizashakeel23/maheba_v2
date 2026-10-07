@@ -14,17 +14,21 @@ import {
   getStaticVisibleProviders,
   getVisibleProviders,
 } from "@/lib/directory";
+import { fetchProviders } from "@/lib/api";
 
 export default function Home() {
   const [category, setCategory] = useState<ProviderCategory | "all">("all");
   const [query, setQuery] = useState("");
   // Identical static list on server + first client render (no hydration
-  // mismatch); demo-store overrides (admin approvals) load after mount.
+  // mismatch); live data from /api/providers (DB) wins after mount, with
+  // the localStorage demo store as fallback when the API is unreachable.
   const [base, setBase] = useState<Provider[]>(() =>
     getStaticVisibleProviders()
   );
   useEffect(() => {
-    setBase(getVisibleProviders());
+    fetchProviders().then((live) => {
+      setBase(live ?? getVisibleProviders());
+    });
   }, []);
 
   const providers = useMemo(() => {
