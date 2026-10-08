@@ -25,6 +25,7 @@ import {
   fetchAllAppointments,
   fetchAudit,
   fetchPayments,
+  runExpirySweep,
   type AdminPayment,
   type AdminUserRow,
 } from "@/lib/api";
@@ -100,6 +101,26 @@ export default function AdminPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPass, setNewPass] = useState("");
   const [adminMsg, setAdminMsg] = useState<string | null>(null);
+
+  const [sweeping, setSweeping] = useState(false);
+  const [sweepMsg, setSweepMsg] = useState<string | null>(null);
+
+  const runSweep = async () => {
+    setSweeping(true);
+    setSweepMsg(null);
+    const r = await runExpirySweep();
+    setSweeping(false);
+    if (!r.ok) {
+      setSweepMsg(r.error);
+      return;
+    }
+    setSweepMsg(
+      r.expired === 0
+        ? "All clear — nothing past due ♡"
+        : `Marked ${r.expired} subscription(s) expired ✿`
+    );
+    refresh();
+  };
 
   useEffect(() => {
     let alive = true;
@@ -290,6 +311,18 @@ export default function AdminPage() {
             <div className={stat}><p className={statNum}>{suspended.length}</p><p className={statLbl}>Suspended</p></div>
             <div className={stat}><p className={statNum}>{awaitingBookings.length}</p><p className={statLbl}>Bookings open</p></div>
             <div className={stat}><p className={statNum}>{payments.length}</p><p className={statLbl}>Payments</p></div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              onClick={runSweep}
+              disabled={sweeping}
+              className="rounded-full bg-gradient-to-r from-amber-400 to-orange-400 px-5 py-2 text-sm font-extrabold text-white shadow-md shadow-orange-200 hover:opacity-90 disabled:opacity-50"
+            >
+              {sweeping ? "Checking…" : "Run expiry check ✿"}
+            </button>
+            {sweepMsg && (
+              <p className="text-sm font-bold text-plum-700">{sweepMsg}</p>
+            )}
           </div>
           <h2 className="mt-8 font-display text-3xl text-plum-900">latest activity ✿</h2>
           {audit.length === 0 ? (

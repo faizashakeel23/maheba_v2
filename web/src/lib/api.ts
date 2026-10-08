@@ -372,3 +372,22 @@ export async function deletePhoto(
     return { ok: false, error: "Network error. Is the server running?" };
   }
 }
+
+/** Admin: run the subscription expiry sweep now. */
+export async function runExpirySweep(): Promise<
+  { ok: true; expired: number } | { ok: false; error: string }
+> {
+  try {
+    const res = await fetch("/api/admin/expire", { method: "POST" });
+    const data = (await readJson(res)) as {
+      expired?: number;
+      error?: string;
+    } | null;
+    if (!res.ok) {
+      return { ok: false, error: data?.error ?? "Sweep failed." };
+    }
+    return { ok: true, expired: Number(data?.expired ?? 0) };
+  } catch {
+    return { ok: false, error: "Network error. Is the server running?" };
+  }
+}
