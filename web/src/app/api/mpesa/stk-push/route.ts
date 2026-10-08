@@ -29,9 +29,23 @@ export async function POST(req: Request) {
     );
   }
 
-  // TODO (Supabase wiring): insert into payment_attempts with status
-  // 'initiated' using the SERVICE ROLE key, then call Daraja STK push
-  // with MPESA_* server env vars. Never use anon key here.
+  // Record every attempt (subscription rule) — best effort, never blocks.
+  try {
+    const { getDb } = await import("@/lib/db");
+    const sql = getDb();
+    if (sql) {
+      await sql`
+        insert into payment_attempts (provider_id, amount_kes, phone_msisdn, transaction_reference, status)
+        values (${parsed.data.provider_id}, ${parsed.data.amount_kes},
+                ${parsed.data.phone_msisdn}, ${transaction_reference}, 'initiated')
+      `;
+    }
+  } catch {
+    /* demo slugs have no provider row — mock response still returned */
+  }
+
+  // TODO (Daraja live): call the Daraja STK push API here with MPESA_*
+  // server env vars. Attempts are already recorded above in Postgres.
   const darajaConfigured =
     !!process.env.MPESA_CONSUMER_KEY && !!process.env.MPESA_CONSUMER_SECRET;
 

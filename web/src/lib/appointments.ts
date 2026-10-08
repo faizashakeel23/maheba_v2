@@ -65,9 +65,14 @@ function saveAll(list: Appointment[]) {
 }
 
 export function getAppointments(providerId: string): Appointment[] {
-  return loadAll()
+  return getAllAppointments()
     .filter((a) => a.provider_id === providerId)
     .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+}
+
+/** All bookings across every provider — for the admin console. */
+export function getAllAppointments(): Appointment[] {
+  return loadAll().sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
 export function createAppointment(input: {
