@@ -15,6 +15,7 @@ import {
   getVisibleProviders,
 } from "@/lib/directory";
 import { fetchProviders } from "@/lib/api";
+import Photo from "@/components/Photo";
 
 export default function Home() {
   const [category, setCategory] = useState<ProviderCategory | "all">("all");
@@ -99,12 +100,10 @@ export default function Home() {
             >
               <div className={`h-1.5 bg-gradient-to-r ${t.gradient}`} />
               <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={p.portfolio[0]?.image_url ?? p.cover_image}
+                <Photo
+                  src={p.portfolio[0]?.image_url || p.cover_image || undefined}
                   alt={p.business_name}
                   className="aspect-square w-full object-cover group-hover:opacity-95"
-                  loading="lazy"
                 />
                 <span
                   className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest shadow-sm ${t.badge}`}
@@ -116,11 +115,11 @@ export default function Home() {
                 </span>
               </div>
               <div className="flex items-center gap-3 p-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={p.avatar}
+                <Photo
+                  src={p.avatar || undefined}
                   alt=""
-                  className={`h-11 w-11 rounded-full object-cover ring-2 ${t.ring}`}
+                  compact
+                  className={`h-11 w-11 shrink-0 rounded-full object-cover ring-2 ${t.ring}`}
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-2xl leading-none text-plum-900">

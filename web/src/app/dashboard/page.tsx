@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { SUBSCRIPTION_PRICE_KES, type Appointment } from "@/types";
 import { useAuth } from "@/lib/auth";
@@ -11,9 +11,14 @@ import {
 } from "@/lib/appointments";
 import {
   decideBooking,
+  deletePhoto,
   fetchAppointments,
+  fetchPhotos,
+  uploadPhoto,
   type DecisionInput,
+  type PortfolioPhoto,
 } from "@/lib/api";
+import { recordPayment } from "@/lib/payments";
 
 function fmt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -140,6 +145,111 @@ function AppointmentCard({
   );
 }
 
+function PortfolioSection({ providerId }: { providerId: string }) {
+  const [photos, setPhotos] = useState<PortfolioPhoto[]>([]);
+  const [caption, setCaption] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchPhotos(providerId).then((live) => {
+      if (live) setPhotos(live);
+    });
+  }, [providerId]);
+
+  const upload = async () => {
+    const file = fileRef.current?.files?.[0];
+    if (!file) {
+      setNote("Choose a photo first ♡");
+      return;
+    }
+    setBusy(true);
+    setNote(null);
+    const result = await uploadPhoto(providerId, file, caption);
+    setBusy(false);
+    if (!result.ok) {
+      setNote(result.error);
+      return;
+    }
+    setPhotos((prev) => [...prev, result.photo]);
+    setCaption("");
+    if (fileRef.current) fileRef.current.value = "";
+    setNote("Photo added ✿");
+  };
+
+  const remove = async (id: string) => {
+    const result = await deletePhoto(id);
+    if (!result.ok) {
+      setNote(result.error);
+      return;
+    }
+    setPhotos((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  return (
+    <div className="mt-8 rounded-[2rem] bg-white p-6 ring-1 ring-blush-100">
+      <h2 className="font-display text-3xl text-plum-900">
+        portfolio{" "}
+        <span className="font-script text-blush-600">· show your work ♡</span>
+      </h2>
+      <p className="mt-1 text-sm font-semibold text-plum-500">
+        Your first photo becomes your cover + avatar. JPG, PNG or WEBP, ≤5MB,
+        max 24.
+      </p>
+      {photos.length > 0 && (
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {photos.map((p) => (
+            <div
+              key={p.id}
+              className="relative overflow-hidden rounded-2xl ring-1 ring-blush-100"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.image_url}
+                alt={p.caption || "portfolio photo"}
+                className="aspect-square w-full object-cover"
+              />
+              <button
+                onClick={() => remove(p.id)}
+                aria-label="Delete photo"
+                className="absolute right-1 top-1 rounded-full bg-plum-900/80 px-2 py-0.5 text-xs font-extrabold text-white"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="mt-4 flex flex-col gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="text-xs font-bold text-plum-700 file:mr-3 file:rounded-full file:border-0 file:bg-blush-100 file:px-4 file:py-1.5 file:text-xs file:font-extrabold file:text-plum-700"
+        />
+        <div className="flex gap-2">
+          <input
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Caption (optional) ♡"
+            maxLength={280}
+            className="w-full rounded-full border border-blush-200 bg-blush-50/50 px-4 py-2 text-sm font-bold text-plum-900 outline-none focus:border-blush-400"
+          />
+          <button
+            onClick={upload}
+            disabled={busy}
+            className="shrink-0 rounded-full bg-gradient-to-r from-blush-400 to-fuchsia-400 px-5 py-2 text-sm font-extrabold text-white shadow-md shadow-pink-200 hover:opacity-90 disabled:opacity-50"
+          >
+            {busy ? "Adding…" : "Add photo ✿"}
+          </button>
+        </div>
+      </div>
+      {note && <p className="mt-2 text-sm font-bold text-plum-700">{note}</p>}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const [appts, setAppts] = useState<Appointment[]>([]);
@@ -178,10 +288,24 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) setMsg(data.error ?? "Payment failed to start.");
-      else
+      else {
+        // Demo-mode log so the admin console can review test payments.
+        // (Server records real attempts in payment_attempts when possible.)
+        try {
+          recordPayment({
+            ref: String(data.transaction_reference),
+            provider_id: user?.providerId ?? "glam-by-zawadi",
+            amount_kes: SUBSCRIPTION_PRICE_KES,
+            phone,
+            status: "initiated",
+          });
+        } catch {
+          /* demo log unavailable */
+        }
         setMsg(
           `STK push sent (ref ${data.transaction_reference}) ♡ Enter your M-Pesa PIN on ${phone}. Subscription activates only after confirmed callback — never trust this screen alone.`
         );
+      }
     } catch {
       setMsg("Network error starting payment.");
     } finally {
@@ -257,6 +381,8 @@ export default function DashboardPage() {
           <AppointmentCard key={a.id} appt={a} onChange={reload} />
         ))}
       </div>
+
+      <PortfolioSection providerId={user.providerId} />
 
       <div className="card-cute mt-8 rounded-[2rem] bg-white p-6 ring-1 ring-blush-100">
         <h2 className="font-display text-3xl text-plum-900">

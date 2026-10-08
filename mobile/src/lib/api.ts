@@ -59,8 +59,9 @@ async function readJson(res: Response): Promise<unknown> {
 }
 
 // API providers carry web image paths — serve them as remote URIs.
-function img(url: string | undefined | null): { uri: string } {
-  return { uri: url ? `${API_BASE}${url}` : "" };
+// undefined when missing so <Image> renders nothing (no empty-uri warning).
+function img(url: string | undefined | null): { uri: string } | undefined {
+  return url ? { uri: `${API_BASE}${url}` } : undefined;
 }
 
 function mapProvider(p: Record<string, unknown>): Provider {
@@ -70,8 +71,7 @@ function mapProvider(p: Record<string, unknown>): Provider {
       return { id: String(it.id), image: img(it.image_url), caption: it.caption ?? "" };
     }
   );
-  const first =
-    portfolio.length > 0 ? (portfolio[0].image as { uri: string }) : { uri: "" };
+  const first = portfolio.length > 0 ? portfolio[0].image : undefined;
   return {
     id: String(p.id),
     business_name: String(p.business_name ?? ""),

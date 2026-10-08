@@ -7,6 +7,7 @@ import { CATEGORY_THEMES, type Provider } from "@/types";
 import { getProviderById, isVisible } from "@/lib/directory";
 import { fetchProviderById } from "@/lib/api";
 import BookingForm from "@/components/BookingForm";
+import Photo from "@/components/Photo";
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -60,10 +61,10 @@ export default function ProviderPage({
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16">
       <div className="relative mt-4 overflow-hidden rounded-[2rem] ring-1 ring-blush-100">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={provider.cover_image}
+        <Photo
+          src={provider.cover_image || undefined}
           alt=""
+          eager
           className="h-56 w-full object-cover sm:h-72"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-plum-900/50 via-transparent to-transparent" />
@@ -78,11 +79,12 @@ export default function ProviderPage({
       </div>
 
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={provider.avatar}
+        <Photo
+          src={provider.avatar || undefined}
           alt={provider.business_name}
-          className={`h-20 w-20 rounded-full object-cover shadow-lg ring-4 ring-white ${t.glow}`}
+          eager
+          compact
+          className={`h-20 w-20 shrink-0 rounded-full object-cover shadow-lg ring-4 ring-white ${t.glow}`}
         />
         <div className="flex-1">
           <h1 className="font-display text-4xl leading-none text-plum-900">

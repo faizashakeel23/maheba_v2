@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# provider portfolio uploads (served from public/, per-dev-machine data)
+public/uploads/
