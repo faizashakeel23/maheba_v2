@@ -90,6 +90,28 @@ docker run --rm -v maheba_pgdata:/data -v %cd%:/backup alpine ^
   tar czf /backup/pgdata-backup.tgz /data
 ```
 
+## Backup drill (pg_dump + test restore — proven 2026-10-08)
+
+Backs up the live DB, restores into a spare database, and compares every
+table. Live data is never touched.
+
+```bash
+# 1. Dump (from WSL: sudo -n <absolute-path-to-docker> …)
+docker exec maheba-db-1 pg_dump -U maheba maheba > maheba-backup.sql
+
+# 2. Restore into a spare database
+docker exec -i maheba-db-1 psql -U maheba -d postgres -c "CREATE DATABASE maheba_restore_test"
+docker exec -i maheba-db-1 psql -U maheba -d maheba_restore_test < maheba-backup.sql
+
+# 3. Compare row counts per table on both databases (must match exactly),
+#    then drop the spare + delete the dump file when done.
+docker exec -i maheba-db-1 psql -U maheba -d postgres -c "DROP DATABASE maheba_restore_test"
+```
+
+Drill result: all 9 tables matched exactly
+(users 11, providers 9, services 15, portfolio_items 40, appointments 3,
+sessions 17, admin_audit 6, subscriptions + payment_attempts 0).
+
 ## Notes & limits
 
 - Access rules live in the API layer, not Postgres RLS (see `db/schema.sql`

@@ -56,7 +56,9 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
   files ignored + untracked; legacy Supabase URL/key scrubbed from the
   `.example` (rotate or delete that unused cloud project as hygiene).
   Dev defaults (`maheba`/`maheba123`) are documented dev-only
-- [ ] Automated backups of prod DB tested with a restore drill
+- [x] Automated backups of prod DB tested with a restore drill (dev drill
+  proven: pg_dump → spare-DB restore → all 9 tables match; see db/README.
+  Prod still needs its own scheduled backup once hosted)
 
 ## 3. M-Pesa (Daraja) live wiring
 
