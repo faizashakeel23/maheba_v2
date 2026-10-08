@@ -60,10 +60,17 @@ Client never sets subscription status. All status changes happen in the callback
 - `/join` — Provider signup (creates pending provider)
 - `/login` — Provider demo login (picks a business profile; real Supabase Auth once keys exist)
 - `/dashboard` — Provider: appointments (accept / decline / propose new time / cancel), subscription status, Pay with M-Pesa
-- `/admin` — Admin demo login (admin tab) required; approve/reject pending providers
-  + join submissions, hidden-listings view, audit trail (all in `lib/providers.ts`
-  demo store; real RLS + `admin_audit` table once Supabase keys exist)
-- `/api/mpesa/stk-push`, `/api/mpesa/callback` — trusted backend only
+- `/admin` — Admin console (admin login required): Overview stats, Providers
+  (search/filter, approve / suspend / reactivate / reject, expired + suspended
+  badges), Bookings (all), Payments (all M-Pesa attempts), Admins (add/remove
+  admin users, self + last-admin guarded), Audit trail. API-first with
+  demo-store fallback.
+- `/api/mpesa/stk-push`, `/api/mpesa/callback` — trusted backend only.
+  STK push records every attempt in `payment_attempts`.
+- `/api/admin/providers`, `/api/admin/providers/[id]` (PATCH
+  approved/rejected/suspended), `/api/admin/appointments`,
+  `/api/admin/payments`, `/api/admin/users` (+`[id]` DELETE) — admin role
+  required, audit-logged.
 
 ## Appointments (To Do, demo mode)
 

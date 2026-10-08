@@ -8,7 +8,9 @@ Rule: nothing is "done" until verified — see skills.md completion report.
 - [x] Docker Desktop installed + `docker compose up -d` healthy (`db/README.md`)
   (engine 29.8.2, `maheba-db-1` healthy, seed verified: 8 providers / 6 visible)
 - [ ] Node LTS on all dev machines; `npm install` clean in `web/` and `mobile/`
-- [ ] Expo Go Android crash resolved (paste the detail text from the red screen)
+- [x] Expo Go phone testing verified (SDK 57 client, same Wi-Fi, Private
+  network profile + firewall rule for TCP 3000, `--tunnel --clear`;
+  seed login hits the real API, not the demo fallback)
 - [ ] Decide prod database: **managed Postgres** (recommended: Supabase cloud,
   Neon, RDS) vs self-hosted. Local Docker is for dev only.
 - [x] Canonical schema decided: **plain Postgres** — `db/schema.sql` is the one
@@ -31,14 +33,18 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
 
 ## 2. API + data hardening
 
-- [ ] Web pages read `/api/*` with graceful fallback when DB is down
-  (today they still read localStorage only)
+- [x] Web pages read `/api/*` with graceful fallback when DB is down
+  (feed, profile, join, dashboard, admin go through `@/lib/api` API-first;
+  localStorage demo store is fallback only)
 - [ ] Mobile points at prod API via `https://` URL (not `localhost`; not LAN IP)
 - [ ] Rate-limit guest booking + join endpoints (spam protection)
 - [ ] Subscription expiry job: mark past-`period_end` rows `expired` on a schedule
   (visibility rule depends on it)
-- [ ] Portfolio uploads: real storage (Supabase Storage / S3) with the existing
-  jpg/png/webp ≤5MB validation enforced server-side (today images are static paths)
+- [x] Portfolio uploads (web): `POST/GET/DELETE /api/portfolio`
+  (owner-only, jpg/png/webp ≤5MB + magic-byte check server-side, max 24,
+  files in gitignored `public/uploads/`, dashboard UI).
+  Still open: prod storage (S3) + mobile upload (needs dev build —
+  `expo-image-picker` can't run in Expo Go)
 - [ ] `DATABASE_URL` + all secrets in hosting env vars only — never committed
 - [ ] Automated backups of prod DB tested with a restore drill
 

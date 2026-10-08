@@ -26,6 +26,16 @@ docker compose ps
 docker compose logs db --tail 20   # look for "database system is ready"
 ```
 
+## Manage from WSL (Docker Desktop integration)
+
+Enable **Ubuntu** under Settings → Resources → WSL integration, then
+`docker` / `docker compose` work directly from WSL against the same
+daemon and `pgdata` volume — no data migration. The DB is reachable
+from WSL at `localhost:5432`. If a shell predates your `docker` group
+membership, call docker via absolute path with a scoped rule, e.g.
+`faiza ALL=(ALL) NOPASSWD: /home/faiza/.local/bin/docker` in
+`/etc/sudoers.d/docker`.
+
 ## Connect the web app
 
 ```bash
