@@ -1,5 +1,5 @@
 export type ProviderCategory = "makeup" | "henna" | "baking";
-export type ProviderStatus = "pending" | "approved" | "rejected";
+export type ProviderStatus = "pending" | "approved" | "rejected" | "suspended";
 export type SubscriptionStatus = "pending" | "active" | "expired";
 export type PaymentStatus = "initiated" | "confirmed" | "failed" | "duplicate";
 export type AppointmentStatus =

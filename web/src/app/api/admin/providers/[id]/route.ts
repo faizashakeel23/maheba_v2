@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getRequestUser } from "@/lib/auth-server";
 
+const ALLOWED = ["approved", "rejected", "suspended"] as const;
+type Decision = (typeof ALLOWED)[number];
+
 /**
- * Admin: approve / reject a provider. Approving a join (no subscription yet)
- * grants the same 30-day start the demo store gives; re-approvals keep the
- * existing period. Every decision is audit-logged.
- * (No auth yet — plan.md phase 1. Same trust level as the demo store.)
+ * Admin: approve / reject / suspend a provider. Approving a join
+ * (no subscription yet) grants a 30-day start; re-approvals keep the
+ * existing period. Every decision is audit-logged (reactivate is logged
+ * when a suspended provider is approved again).
  */
 export async function PATCH(
   req: Request,
@@ -30,18 +33,26 @@ export async function PATCH(
   const body = (await req.json().catch(() => null)) as {
     status?: string;
   } | null;
-  if (body?.status !== "approved" && body?.status !== "rejected") {
+  if (!body || !(ALLOWED as readonly string[]).includes(body.status ?? "")) {
     return NextResponse.json(
-      { error: "status must be approved or rejected." },
+      { error: "status must be approved, rejected or suspended." },
       { status: 400 }
     );
   }
+  const status = body.status as Decision;
   const admin = requester.email;
+  const current = await sql`
+    select status from providers where id = ${id}
+  `;
+  const prev = current[0]?.status as string | undefined;
+  if (!prev) {
+    return NextResponse.json({ error: "Provider not found." }, { status: 404 });
+  }
   const rows = await sql`
     update providers
-    set status = ${body.status},
+    set status = ${status},
         subscription_end = case
-          when ${body.status} = 'approved' and subscription_end is null
+          when ${status} = 'approved' and subscription_end is null
           then now() + interval '30 days'
           else subscription_end
         end,
@@ -53,15 +64,19 @@ export async function PATCH(
     | { id: string; business_name: string; status: string }
     | undefined;
   if (!updated) {
-    return NextResponse.json(
-      { error: "Provider not found." },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Provider not found." }, { status: 404 });
   }
+  const action =
+    status === "approved"
+      ? prev === "suspended"
+        ? "reactivate"
+        : "approve"
+      : status === "suspended"
+        ? "suspend"
+        : "reject";
   await sql`
     insert into admin_audit (admin_email, action, target)
-    values (${admin}, ${body.status === "approved" ? "approve" : "reject"},
-            ${updated.business_name})
+    values (${admin}, ${action}, ${updated.business_name})
   `;
   return NextResponse.json(updated);
 }

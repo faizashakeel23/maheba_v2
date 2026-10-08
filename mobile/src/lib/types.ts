@@ -1,5 +1,5 @@
 export type ProviderCategory = "makeup" | "henna" | "baking";
-export type ProviderStatus = "pending" | "approved" | "rejected";
+export type ProviderStatus = "pending" | "approved" | "rejected" | "suspended";
 export type SubscriptionStatus = "pending" | "active" | "expired";
 export type PaymentStatus = "initiated" | "confirmed" | "failed" | "duplicate";
 export type AppointmentStatus =
@@ -9,7 +9,9 @@ export type AppointmentStatus =
   | "rescheduled"
   | "cancelled";
 
-/** Local bundled photo (require()/import) or a remote API image ({ uri }). */
+/** Local bundled photo (require()/import) or a remote API image ({ uri }).
+ *  `undefined` = no photo — pass straight to <Image source>; RN renders
+ *  nothing (an empty-string uri would log a warning per render). */
 export type Img = number | { uri: string };
 
 export interface Service {
@@ -22,7 +24,7 @@ export interface Service {
 
 export interface PortfolioItem {
   id: string;
-  image: Img;
+  image: Img | undefined;
   caption: string;
 }
 
@@ -36,8 +38,8 @@ export interface Provider {
   whatsapp: string;
   instagram: string;
   status: ProviderStatus;
-  avatar: Img;
-  cover_image: Img;
+  avatar: Img | undefined;
+  cover_image: Img | undefined;
   rating: number;
   reviews_count: number;
   subscription_end: string | null;

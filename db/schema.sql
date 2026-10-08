@@ -17,7 +17,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type provider_status as enum ('pending', 'approved', 'rejected');
+  create type provider_status as enum ('pending', 'approved', 'rejected', 'suspended');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
