@@ -7,28 +7,40 @@ approvals. Demo data in `src/lib` (AsyncStorage); swap for Supabase when keys ex
 ## Run on your phone (Expo Go)
 
 1. Phone + PC on the **same Wi-Fi**.
-2. `cd mobile` then `npx expo start`
-3. Scan the QR with **Expo Go** (Android: scan from inside the Expo Go app).
+2. `cd mobile`, then start with the backend URL baked in (see below):
+   ```bash
+   EXPO_PUBLIC_API_URL=http://192.168.100.20:3000 npx expo start --tunnel --clear
+   ```
+   (`--clear` matters: the URL is baked in at bundle time.)
+3. Scan the QR **from inside the Expo Go app** (Android). Use a current
+   Expo Go release — SDK 57 refuses to load on old clients.
 
 ## Connect to the backend (real data + real login)
 
 The app talks to the Next.js API (`web/`). Phones can't reach your PC's
-`localhost`, so set your PC's LAN IP before starting:
+`localhost`, so the API must be reachable on the PC's LAN IP:
 
-```bash
-# find it: ipconfig (look for IPv4, e.g. 192.168.1.20)
-EXPO_PUBLIC_API_URL=http://192.168.1.20:3000 npx expo start --clear
-```
+- **Windows Wi-Fi must be Private**, not Public (Public blocks inbound):
+  elevated PowerShell —
+  `Set-NetConnectionProfile -InterfaceAlias "Wi-Fi 2" -NetworkCategory Private`
+- **Firewall**: allow inbound TCP 3000 (rule `Maheba Next.js 3000`).
+  `New-NetFirewallRule -DisplayName "Maheba Next.js 3000" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private`
+- **LAN → API path**: the dev server currently runs in **WSL**, so the
+  phone's `http://<windows-lan-ip>:3000` must be forwarded into WSL.
+  Pick one (deferred setup — LAN testing is broken until this is done):
+  - portproxy (quick, redo when the WSL IP changes), elevated PowerShell:
+    `netsh interface portproxy add v4tov4 listenport=3000 listenaddress=0.0.0.0 connectport=3000 connectaddress=<wsl-ip>`
+    (find it: `wsl hostname -I`)
+  - mirrored networking (durable): `%USERPROFILE%\.wslconfig` with
+    `[wsl2] networkingMode=mirrored`, then `wsl --shutdown` and reopen.
+- **LAN IP moves with DHCP** (e.g. `.48` → `.20` after a Wi-Fi switch).
+  Re-check with `ipconfig`, update `EXPO_PUBLIC_API_URL`, and consider a
+  router DHCP reservation for a stable address.
 
-On Windows PowerShell:
-
-```powershell
-$env:EXPO_PUBLIC_API_URL="http://192.168.1.20:3000"; npx.cmd expo start --clear
-```
-
-Without it, the app uses the Android-emulator default
-(`http://10.0.2.2:3000`) and silently falls back to the on-device demo
-store when unreachable. Log in with a seed account (`maheba123` password).
+Without a reachable API, the app silently falls back to the on-device
+demo store. Confirm you're on the real backend by logging in with a seed
+account (`maheba123` password) — success = real API; *"Can't reach the
+server"* = still on fallback.
 
 ## Run on an Android emulator
 

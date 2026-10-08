@@ -37,9 +37,15 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
   (feed, profile, join, dashboard, admin go through `@/lib/api` API-first;
   localStorage demo store is fallback only)
 - [ ] Mobile points at prod API via `https://` URL (not `localhost`; not LAN IP)
-- [ ] Rate-limit guest booking + join endpoints (spam protection)
-- [ ] Subscription expiry job: mark past-`period_end` rows `expired` on a schedule
-  (visibility rule depends on it)
+- [x] Rate-limit guest booking + join endpoints (spam protection):
+  in-memory per-IP sliding window (`web/src/lib/rate-limit.ts`) —
+  20 bookings/hour, 10 joins/hour, 429 + Retry-After.
+  Single-process only; swap for Redis/DB counters when multi-instance
+- [x] Subscription expiry job: past-`period_end` rows flip to `expired`
+  (`web/src/lib/subscriptions.ts`): auto-sweep hourly + shortly after boot
+  (`src/instrumentation.ts`), manual "Run expiry check" button in admin
+  Overview (`POST /api/admin/expire`, audit-logged). Single-server only —
+  move to platform cron when multi-instance
 - [x] Portfolio uploads (web): `POST/GET/DELETE /api/portfolio`
   (owner-only, jpg/png/webp ≤5MB + magic-byte check server-side, max 24,
   files in gitignored `public/uploads/`, dashboard UI).
