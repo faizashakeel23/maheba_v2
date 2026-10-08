@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { appointmentSchema } from "@/lib/validation";
 import { getRequestUser, ownsProvider } from "@/lib/auth-server";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 
 function uid(): string {
   return `appt-${Date.now().toString(36)}-${Math.random()
@@ -54,6 +55,12 @@ export async function POST(req: Request) {
       { status: 503 }
     );
   }
+  // Spam guard: fake bookings flood real providers (CGNAT-safe ceiling).
+  const limited = checkRateLimit(req, "booking", {
+    limit: 20,
+    windowSeconds: 3600,
+  });
+  if (!limited.ok) return rateLimitExceeded(limited.retryAfter);
   const body = await req.json().catch(() => null);
   const parsed = appointmentSchema.safeParse(body);
   if (!parsed.success) {

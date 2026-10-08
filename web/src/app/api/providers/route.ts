@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { providerSchema } from "@/lib/validation";
+import { checkRateLimit, rateLimitExceeded } from "@/lib/rate-limit";
 import {
   createSession,
   hashPassword,
@@ -75,6 +76,12 @@ export async function POST(req: Request) {
       { status: 503 }
     );
   }
+  // Spam guard: fake joins pollute the admin queue (CGNAT-safe ceiling).
+  const limited = checkRateLimit(req, "join", {
+    limit: 10,
+    windowSeconds: 3600,
+  });
+  if (!limited.ok) return rateLimitExceeded(limited.retryAfter);
   const body = await req.json().catch(() => null);
   const parsed = joinSchema.safeParse(body);
   if (!parsed.success) {
