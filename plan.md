@@ -118,5 +118,6 @@ Both routes are mock-shaped today (see `TODO`s in the files):
 
 - Small commits on `main` (local only, no remote yet)
 - `tsc --noEmit` (web + mobile) before every commit; `expo-doctor` for mobile changes
+- `npm test` (web) green before merging any branch into `main`
 - Update this file when the plan changes; update `docs/architecture.md` when
   behavior changes.
