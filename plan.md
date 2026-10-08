@@ -11,8 +11,9 @@ Rule: nothing is "done" until verified — see skills.md completion report.
 - [x] Expo Go phone testing verified (SDK 57 client, same Wi-Fi, Private
   network profile + firewall rule for TCP 3000, `--tunnel --clear`;
   seed login hits the real API, not the demo fallback)
-- [ ] Decide prod database: **managed Postgres** (recommended: Supabase cloud,
-  Neon, RDS) vs self-hosted. Local Docker is for dev only.
+- [x] Decide prod database: **self-hosted Postgres on an Ubuntu VPS + Docker**
+  (4GB RAM, 50GB+ disk — plenty for web + DB + photo volume). Managed cloud
+  (Supabase/Neon/RDS) deferred unless self-hosting ever hurts.
 - [x] Canonical schema decided: **plain Postgres** — `db/schema.sql` is the one
   true schema; `supabase/migrations/*` kept as legacy reference (`supabase/LEGACY.md`).
 
@@ -50,7 +51,9 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
   (owner-only, jpg/png/webp ≤5MB + magic-byte check server-side, max 24,
   files in gitignored `public/uploads/`, dashboard UI).
   Still open: prod storage (S3) + mobile upload (needs dev build —
-  `expo-image-picker` can't run in Expo Go)
+  `expo-image-picker` can't run in Expo Go).
+  Decided: prod photos = local disk volume on the Ubuntu VPS (no S3 needed
+  at this scale; the upload code writes through one spot if that changes)
 - [x] `DATABASE_URL` + all secrets in hosting env vars only — never committed.
   Audited on `feature/secrete_audit`: no hardcoded secrets; real `.env*`
   files ignored + untracked; legacy Supabase URL/key scrubbed from the
@@ -76,7 +79,8 @@ Both routes are mock-shaped today (see `TODO`s in the files):
 ## 4. Web production build
 
 - [ ] `npm run build`, `tsc --noEmit`, `npm run lint` all green
-- [ ] Hosting chosen (Vercel / VPS + Docker) with env vars set
+- [ ] Hosting chosen: **Ubuntu VPS + Docker** (env vars, domain + HTTPS,
+  photo volume mount, firewall, backup cron — all still to do)
 - [ ] Custom domain + HTTPS; metadata/descriptions final (Kenya-wide wording)
 - [ ] Error/404 pages reviewed; loading states on feed + profile
 
