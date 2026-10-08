@@ -51,7 +51,11 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
   files in gitignored `public/uploads/`, dashboard UI).
   Still open: prod storage (S3) + mobile upload (needs dev build —
   `expo-image-picker` can't run in Expo Go)
-- [ ] `DATABASE_URL` + all secrets in hosting env vars only — never committed
+- [x] `DATABASE_URL` + all secrets in hosting env vars only — never committed.
+  Audited on `feature/secrete_audit`: no hardcoded secrets; real `.env*`
+  files ignored + untracked; legacy Supabase URL/key scrubbed from the
+  `.example` (rotate or delete that unused cloud project as hygiene).
+  Dev defaults (`maheba`/`maheba123`) are documented dev-only
 - [ ] Automated backups of prod DB tested with a restore drill
 
 ## 3. M-Pesa (Daraja) live wiring
