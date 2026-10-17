@@ -113,7 +113,10 @@ export default function ProviderScreen() {
       <View style={styles.head}>
         <Image source={provider.avatar} style={styles.avatar} />
         <View style={styles.headInfo}>
-          <Text style={styles.name}>{provider.business_name}</Text>
+          <Text style={styles.name}>
+            {provider.business_name}
+            {provider.id_verified && <Text style={{ color: "#1d9bf0" }}> ✔</Text>}
+          </Text>
           <GText style={styles.meta}>
             {provider.location} · ★ {provider.rating.toFixed(1)} ({provider.reviews_count})
           </GText>

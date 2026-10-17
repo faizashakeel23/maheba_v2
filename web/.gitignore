@@ -42,3 +42,6 @@ next-env.d.ts
 
 # provider portfolio uploads (served from public/, per-dev-machine data)
 public/uploads/
+
+# provider ID documents (private vault — NEVER served publicly, never commit)
+private/

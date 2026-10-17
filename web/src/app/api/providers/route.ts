@@ -11,6 +11,7 @@ import {
 import {
   toProvider,
   type PortfolioRow,
+  type PostRow,
   type ProviderRow,
   type ServiceRow,
 } from "@/lib/provider-shape";
@@ -30,7 +31,7 @@ export async function GET() {
   }
   const providers = (await sql`
     select id, business_name, category, location, bio, phone, whatsapp,
-           instagram, status, rating, reviews_count, subscription_end
+           instagram, status, id_verified, rating, reviews_count, subscription_end
     from providers
     where status = 'approved'
       and subscription_end is not null
@@ -40,6 +41,7 @@ export async function GET() {
   const ids = providers.map((p) => p.id);
   let services: (ServiceRow & { provider_id: string })[] = [];
   let portfolio: (PortfolioRow & { provider_id: string })[] = [];
+  let posts: (PostRow & { provider_id: string })[] = [];
   if (ids.length > 0) {
     services = (await sql`
       select id, provider_id, title, description, price_kes, unit, image_url
@@ -49,13 +51,19 @@ export async function GET() {
       select id, provider_id, image_url, caption
       from portfolio_items where provider_id in ${sql(ids)} order by created_at
     `) as unknown as (PortfolioRow & { provider_id: string })[];
+    posts = (await sql`
+      select id, provider_id, body, image_url, created_at, updated_at
+      from provider_posts where provider_id in ${sql(ids)}
+      order by created_at desc
+    `) as unknown as (PostRow & { provider_id: string })[];
   }
   return NextResponse.json(
     providers.map((p) =>
       toProvider(
         p,
         services.filter((s) => s.provider_id === p.id),
-        portfolio.filter((item) => item.provider_id === p.id)
+        portfolio.filter((item) => item.provider_id === p.id),
+        posts.filter((post) => post.provider_id === p.id)
       )
     )
   );

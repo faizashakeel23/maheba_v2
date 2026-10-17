@@ -83,6 +83,8 @@ export function approveSubmission(sub: JoinSubmission, adminEmail: string): Prov
     whatsapp: sub.whatsapp,
     instagram: sub.instagram || "",
     status: "approved",
+    id_verified: false,
+    id_document_url: null,
     avatar: imgs.avatar,
     cover_image: imgs.cover,
     rating: 5.0,
@@ -91,6 +93,7 @@ export function approveSubmission(sub: JoinSubmission, adminEmail: string): Prov
     subscription_end: new Date(Date.now() + 30 * 86400_000).toISOString(),
     services: [],
     portfolio: [],
+    posts: [],
   };
   const custom = read<Provider[]>(CUSTOM_KEY, []);
   write(CUSTOM_KEY, [...custom, provider]);

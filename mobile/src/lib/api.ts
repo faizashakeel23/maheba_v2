@@ -82,6 +82,7 @@ function mapProvider(p: Record<string, unknown>): Provider {
     whatsapp: String(p.whatsapp ?? ""),
     instagram: String(p.instagram ?? ""),
     status: p.status as Provider["status"],
+    id_verified: Boolean(p.id_verified ?? false),
     avatar: first,
     cover_image: first,
     rating: Number(p.rating ?? 0),

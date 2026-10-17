@@ -89,6 +89,11 @@ export default function ProviderPage({
         <div className="flex-1">
           <h1 className="font-display text-4xl leading-none text-plum-900">
             {provider.business_name}
+            {provider.id_verified && (
+              <span className="ml-2 align-middle text-3xl text-sky-500" title="ID verified — admin-checked">
+                ✔
+              </span>
+            )}
           </h1>
           <p className="mt-1 text-sm font-bold text-plum-500">
             {provider.location} ·{" "}
@@ -126,6 +131,30 @@ export default function ProviderPage({
           </a>
         </div>
       </div>
+
+      <h2 className="mt-10 font-display text-3xl text-plum-900">
+        fresh from {provider.business_name}{" "}
+        <span className={`font-script ${t.accent}`}>✿</span>
+      </h2>
+      {provider.posts.length === 0 ? (
+        <p className="mt-2 font-script text-2xl text-plum-500">
+          quiet here for now — scroll for the portfolio ♡
+        </p>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {provider.posts.map((post) => (
+            <article
+              key={post.id}
+              className="rounded-3xl bg-white p-5 ring-1 ring-blush-100"
+            >
+              <p className="text-sm font-semibold text-plum-900">{post.body}</p>
+              <p className="mt-1 text-xs font-bold text-plum-500">
+                {fmt(post.created_at)}
+              </p>
+            </article>
+          ))}
+        </div>
+      )}
 
       <h2 className="mt-10 font-display text-3xl text-plum-900">
         portfolio <span className={`font-script ${t.accent}`}>✿</span>

@@ -72,6 +72,7 @@ export async function approveSubmission(
     whatsapp: sub.whatsapp,
     instagram: sub.instagram || "",
     status: "approved",
+    id_verified: false,
     avatar: imgs.avatar,
     cover_image: imgs.cover,
     rating: 5.0,

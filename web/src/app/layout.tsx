@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthProvider } from "@/lib/auth";
+import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -59,7 +60,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <div className="flex-1">
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
         </div>
         <footer className="border-t border-blush-100 bg-blush-50/60">
           <div className="mx-auto max-w-6xl px-4 py-6 text-center text-xs font-semibold text-plum-500">

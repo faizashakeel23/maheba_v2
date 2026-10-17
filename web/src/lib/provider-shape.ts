@@ -12,6 +12,7 @@ export interface ProviderRow {
   whatsapp: string | null;
   instagram: string | null;
   status: string;
+  id_verified: boolean;
   rating: number | string | null;
   reviews_count: number | string | null;
   subscription_end: string | Date | null;
@@ -34,11 +35,20 @@ export interface PortfolioRow {
   caption: string | null;
 }
 
+export interface PostRow {
+  id: string;
+  body: string;
+  image_url: string | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
 /** Shape a DB provider + its extras into the app's Provider type. */
 export function toProvider(
   p: ProviderRow,
   services: ServiceRow[],
-  portfolio: PortfolioRow[]
+  portfolio: PortfolioRow[],
+  posts: PostRow[] = []
 ): Provider {
   const first = portfolio[0]?.image_url ?? "";
   return {
@@ -51,6 +61,9 @@ export function toProvider(
     whatsapp: p.whatsapp ?? "",
     instagram: p.instagram ?? "",
     status: p.status as Provider["status"],
+    id_verified: p.id_verified ?? false,
+    // Never the real filename — ID documents stay in the private vault.
+    id_document_url: null,
     // First portfolio image doubles as cover/avatar, like the mock store.
     avatar: first,
     cover_image: first,
@@ -72,6 +85,13 @@ export function toProvider(
       id: String(item.id),
       image_url: item.image_url,
       caption: item.caption ?? "",
+    })),
+    posts: posts.map((post) => ({
+      id: String(post.id),
+      body: post.body,
+      image_url: post.image_url ?? null,
+      created_at: new Date(post.created_at).toISOString(),
+      updated_at: new Date(post.updated_at).toISOString(),
     })),
   };
 }

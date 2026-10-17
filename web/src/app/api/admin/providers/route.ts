@@ -24,7 +24,8 @@ export async function GET(req: Request) {
   }
   const rows = await sql`
     select id, business_name, category, location, bio, phone, whatsapp,
-           instagram, status, rating, reviews_count, subscription_end
+           instagram, status, id_verified, id_document_url, rating,
+           reviews_count, subscription_end
     from providers
     order by created_at desc
   `;
@@ -38,6 +39,8 @@ export async function GET(req: Request) {
     whatsapp: (p.whatsapp as string) ?? "",
     instagram: (p.instagram as string) ?? "",
     status: p.status as Provider["status"],
+    id_verified: (p.id_verified as boolean) ?? false,
+    id_document_url: (p.id_document_url as string) ?? null,
     avatar: "",
     cover_image: "",
     rating: Number(p.rating ?? 0),
@@ -48,6 +51,7 @@ export async function GET(req: Request) {
         : null,
     services: [],
     portfolio: [],
+    posts: [],
   }));
   return NextResponse.json(result);
 }

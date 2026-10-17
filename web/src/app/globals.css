@@ -65,6 +65,22 @@ body {
   transform: translateY(-2px);
 }
 
+/* Brand toast entrance (bottom-left popups). */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-in {
+  animation: toast-in 0.25s ease-out;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
 }

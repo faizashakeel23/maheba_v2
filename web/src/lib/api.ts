@@ -391,3 +391,245 @@ export async function runExpirySweep(): Promise<
     return { ok: false, error: "Network error. Is the server running?" };
   }
 }
+
+/** Admin: flip the ID-verified blue tick. Offline flag → no demo fallback. */
+export async function setIdVerified(
+  id: string,
+  verified: boolean
+): Promise<{ ok: true } | { ok: false; error: string; offline?: boolean }> {
+  try {
+    const res = await fetch(
+      `/api/admin/providers/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id_verified: verified }),
+      }
+    );
+    if (!res.ok) {
+      const data = (await readJson(res)) as { error?: string } | null;
+      if (res.status === 503)
+        return { ok: false, error: "", offline: true };
+      return { ok: false, error: data?.error ?? "Could not update tick." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "", offline: true };
+  }
+}
+
+export interface IdStatus {
+  id_verified: boolean;
+  submitted: boolean;
+}
+
+/** View URL for a provider's ID document (cookie-authenticated). */
+export function idDocUrl(providerId: string): string {
+  return `/api/id-docs/${encodeURIComponent(providerId)}`;
+}
+
+/** Owner/admin: has ID been submitted + is the tick on? Null = unreachable. */
+export async function fetchIdStatus(
+  providerId: string
+): Promise<IdStatus | null> {
+  try {
+    const res = await fetch(
+      `/api/id-docs?provider_id=${encodeURIComponent(providerId)}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const data = (await readJson(res)) as Partial<IdStatus> | null;
+    if (!data) return null;
+    return {
+      id_verified: data.id_verified ?? false,
+      submitted: data.submitted ?? false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Provider: submit (or re-submit) an ID document for verification. */
+export async function uploadIdDocument(
+  providerId: string,
+  file: File
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const form = new FormData();
+    form.append("provider_id", providerId);
+    form.append("file", file);
+    const res = await fetch("/api/id-docs", { method: "POST", body: form });
+    if (!res.ok) {
+      const data = (await readJson(res)) as { error?: string } | null;
+      return { ok: false, error: data?.error ?? "Upload failed, pretty." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Network error. Is the server running?" };
+  }
+}
+
+export interface FeedPost {
+  id: string;
+  body: string;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Public: a provider's feed posts. Null = unreachable. */
+export async function fetchPosts(
+  providerId: string
+): Promise<FeedPost[] | null> {
+  try {
+    const res = await fetch(
+      `/api/providers/${encodeURIComponent(providerId)}/posts`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const data = await readJson(res);
+    return Array.isArray(data) ? (data as FeedPost[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Owner: publish a feed post. */
+export async function createPost(
+  providerId: string,
+  body: string
+): Promise<{ ok: true; post: FeedPost } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(
+      `/api/providers/${encodeURIComponent(providerId)}/posts`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      }
+    );
+    const data = (await readJson(res)) as
+      | (Partial<FeedPost> & { error?: string })
+      | null;
+    if (!res.ok || !data?.id) {
+      return { ok: false, error: data?.error ?? "Could not publish." };
+    }
+    return {
+      ok: true,
+      post: {
+        id: String(data.id),
+        body: String(data.body ?? ""),
+        image_url: (data.image_url as string) ?? null,
+        created_at: String(data.created_at ?? ""),
+        updated_at: String(data.updated_at ?? ""),
+      },
+    };
+  } catch {
+    return { ok: false, error: "Network error. Is the server running?" };
+  }
+}
+
+/** Owner: edit a feed post. */
+export async function updatePost(
+  id: string,
+  body: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    });
+    if (!res.ok) {
+      const data = (await readJson(res)) as { error?: string } | null;
+      return { ok: false, error: data?.error ?? "Could not save edit." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Network error. Is the server running?" };
+  }
+}
+
+/** Owner: delete a feed post. */
+export async function deletePost(
+  id: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const res = await fetch(`/api/posts/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const data = (await readJson(res)) as { error?: string } | null;
+      return { ok: false, error: data?.error ?? "Could not delete post." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Network error. Is the server running?" };
+  }
+}
+
+export interface MyPayment {
+  id: string;
+  amount_kes: number;
+  phone_msisdn: string;
+  transaction_reference: string;
+  mpesa_receipt: string | null;
+  status: string;
+  created_at: string;
+}
+
+/** Owner: my M-Pesa payment attempts. Null = unreachable. */
+export async function fetchMyPayments(
+  providerId: string
+): Promise<MyPayment[] | null> {
+  try {
+    const res = await fetch(
+      `/api/payments?provider_id=${encodeURIComponent(providerId)}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const data = await readJson(res);
+    return Array.isArray(data) ? (data as MyPayment[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface AccountInfo {
+  id: string;
+  email: string;
+  display_name: string | null;
+  phone: string | null;
+}
+
+/** Self: update display name, login email and/or provider phone. */
+export async function updateAccount(input: {
+  display_name?: string;
+  email?: string;
+  phone?: string;
+}): Promise<{ ok: true; account: AccountInfo } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("/api/account", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await readJson(res)) as
+      | (Partial<AccountInfo> & { error?: string })
+      | null;
+    if (!res.ok || !data?.id) {
+      return { ok: false, error: data?.error ?? "Could not save settings." };
+    }
+    return {
+      ok: true,
+      account: {
+        id: String(data.id),
+        email: String(data.email ?? ""),
+        display_name: data.display_name ?? null,
+        phone: data.phone ?? null,
+      },
+    };
+  } catch {
+    return { ok: false, error: "Network error. Is the server running?" };
+  }
+}

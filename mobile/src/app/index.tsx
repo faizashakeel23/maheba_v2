@@ -132,7 +132,10 @@ export default function Feed() {
                 <View style={styles.row}>
                   <Image source={p.avatar} style={[styles.avatar, { borderColor: t.primary }]} />
                   <View style={styles.info}>
-                    <Text style={styles.name}>{p.business_name}</Text>
+                    <Text style={styles.name}>
+                      {p.business_name}
+                      {p.id_verified && <Text style={{ color: "#1d9bf0" }}> ✔</Text>}
+                    </Text>
                     <GText style={styles.meta}>
                       {p.location} · ({p.reviews_count} reviews)
                     </GText>

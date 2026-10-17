@@ -59,6 +59,12 @@ create table if not exists providers (
   whatsapp text not null default '',
   instagram text not null default '',
   status provider_status not null default 'pending',
+  -- Blue tick: admin flips after manually checking the provider's ID.
+  -- Shown only on paid + approved listings (visibility rule unchanged).
+  id_verified boolean not null default false,
+  -- Private vault filename of the submitted ID (never public; served only
+  -- through the authenticated /api/id-docs route).
+  id_document_url text,
   rating numeric not null default 0,
   reviews_count integer not null default 0,
   -- Public listing rule (mirrors lib/directory.ts isVisible):
@@ -92,6 +98,16 @@ create table if not exists portfolio_items (
   created_at timestamptz not null default now()
 );
 create index if not exists portfolio_provider_idx on portfolio_items(provider_id);
+
+create table if not exists provider_posts (
+  id uuid primary key default gen_random_uuid(),
+  provider_id text not null references providers(id) on delete cascade,
+  body text not null check (char_length(body) between 1 and 1000),
+  image_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists posts_provider_idx on provider_posts(provider_id, created_at desc);
 
 create table if not exists subscriptions (
   id uuid primary key default gen_random_uuid(),

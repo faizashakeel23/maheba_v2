@@ -124,6 +124,11 @@ export default function Home() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-2xl leading-none text-plum-900">
                     {p.business_name}
+                    {p.id_verified && (
+                      <span className="ml-1 text-sky-500" title="ID verified">
+                        ✔
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 truncate text-xs font-bold text-plum-500">
                     {p.location} · ({p.reviews_count} reviews)

@@ -38,6 +38,8 @@ export interface Provider {
   whatsapp: string;
   instagram: string;
   status: ProviderStatus;
+  /** Admin-verified ID — blue tick, shown on paid + approved listings only */
+  id_verified: boolean;
   avatar: Img | undefined;
   cover_image: Img | undefined;
   rating: number;

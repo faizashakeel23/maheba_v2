@@ -20,6 +20,9 @@ services:
       - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
       - ./db/migrations/0002_auth.sql:/docker-entrypoint-initdb.d/03-auth.sql:ro
       - ./db/migrations/0003_suspended.sql:/docker-entrypoint-initdb.d/04-suspended.sql:ro
+      - ./db/migrations/0004_id_verified.sql:/docker-entrypoint-initdb.d/05-id-verified.sql:ro
+      - ./db/migrations/0005_id_documents.sql:/docker-entrypoint-initdb.d/06-id-documents.sql:ro
+      - ./db/migrations/0006_provider_posts.sql:/docker-entrypoint-initdb.d/07-provider-posts.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-maheba}"]
       interval: 5s

@@ -54,6 +54,9 @@ values
    '+254712345008', '254712345008', '', 'approved', 4.5, 30, now() - interval '5 days')
 on conflict (id) do nothing;
 
+-- Blue-tick demo: one visible provider verified, the rest unverified.
+update providers set id_verified = true where id = 'glam-by-zawadi';
+
 -- Services.
 insert into services (provider_id, title, description, price_kes, unit) values
   ('glam-by-zawadi', 'Bridal glam (full)', 'Trial + wedding day, lashes included', 8000, 'per session'),
@@ -110,6 +113,12 @@ insert into portfolio_items (provider_id, image_url, caption) values
   ('pwani-cakes', '/images/baking/b8.jpg', 'Sweet box'),
   ('pwani-cakes', '/images/baking/b9.jpg', 'Custom order'),
   ('pwani-cakes', '/images/baking/b2.jpg', 'Weekend treats');
+
+-- Demo feed posts (provider blog).
+insert into provider_posts (provider_id, body) values
+  ('glam-by-zawadi', 'December bridal slots are open ✿ Weekends fill fast — book your trial early, gorgeous!'),
+  ('glam-by-zawadi', 'New in the kit: waterproof everything. Indian Ocean humidity, consider yourself warned ♡')
+on conflict do nothing;
 
 -- Demo appointments (mirrors the localStorage seed).
 insert into appointments (id, provider_id, customer_name, customer_phone, starts_at, notes, status) values

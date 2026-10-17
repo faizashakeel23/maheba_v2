@@ -63,28 +63,27 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
   proven: pg_dump → spare-DB restore → all 9 tables match; see db/README.
   Prod still needs its own scheduled backup once hosted)
 
-## 3. M-Pesa (Daraja) live wiring
+## 3. Web production build
 
-Both routes are mock-shaped today (see `TODO`s in the files):
-
-- [ ] `POST /api/mpesa/stk-push`: insert `payment_attempts(initiated)` with unique
-  reference, call Daraja STK push with `MPESA_*` server env vars
-- [ ] `POST /api/mpesa/callback`: verify authenticity (signature/IP), idempotent
-  confirm → extend subscription via `nextPeriod()` in one transaction, audit it
-- [ ] Public HTTPS callback URL configured (`MPESA_CALLBACK_URL`) — Safaricom
-  can't reach `localhost`
-- [ ] End-to-end sandbox test: pay → active → listing visible → expiry → hidden
-- [ ] Duplicate-callback test: no double extension for one payment
-
-## 4. Web production build
-
+- [ ] Provider availability calendar (working hours that bookings validate
+  against — distinct from the appointments year view below)
+- [x] ID verification + blue tick for paid + admin-approved providers
+  (`id_verified` column + migration, admin toggle with audit, ✔ badge on
+  web feed/profile, mobile feed/profile, admin console + demo data)
+- [x] Toast feedback system (bottom-left, fadeIn, brand fonts/colors):
+  `ToastProvider` + `useToast()` in `web/src/components/Toast.tsx`,
+  wired into booking form + dashboard photo/ID uploads
+- [x] Provider dashboard tabs (feed, profile, my payments, settings),
+  provider feed/blog (post/edit/delete, feed-first public page), profile
+  year calendar with booked dates, settings (name/email/phone), payments
+  history — web only, mobile follows
 - [ ] `npm run build`, `tsc --noEmit`, `npm run lint` all green
 - [ ] Hosting chosen: **Ubuntu VPS + Docker** (env vars, domain + HTTPS,
   photo volume mount, firewall, backup cron — all still to do)
 - [ ] Custom domain + HTTPS; metadata/descriptions final (Kenya-wide wording)
 - [ ] Error/404 pages reviewed; loading states on feed + profile
 
-## 5. Mobile production build
+## 4. Mobile production build
 
 - [ ] `npx expo-doctor` fully green (1 warning left: `.expo/` gitignore — fixed?)
 - [ ] EAS project configured (`eas.json`), Android package `com.maheba.app` kept
@@ -92,7 +91,7 @@ Both routes are mock-shaped today (see `TODO`s in the files):
 - [ ] Production API URL baked in; guest booking + dashboards tested on device
 - [ ] Store listing assets ready (screenshots, description, privacy note)
 
-## 6. QA pass (staging, with prod-like data)
+## 5. QA pass (staging, with prod-like data)
 
 - [ ] Guest: browse → search/filter → profile → book → WhatsApp contact
 - [ ] Provider: join → approve → pay → visible → receive/decide bookings
@@ -101,18 +100,27 @@ Both routes are mock-shaped today (see `TODO`s in the files):
 - [ ] Invalid inputs rejected everywhere (zod messages sane, no 500s)
 - [ ] Fresh-device test: no localStorage/AsyncStorage leftovers assumed
 
-## 7. Launch
+## 6. Launch
 
 - [ ] Seed prod with REAL providers only (no mock data: Zawadi/Amara/Layla/etc.)
 - [ ] Backup taken right before launch
 - [ ] Monitor: error logs (web), crash reports (mobile), payment attempts table
 - [ ] Support path: how a provider reaches you when STK push fails
 
-## 8. After launch (from skills.md To Do — explicitly NOT launch blockers)
+## 7. After launch (from skills.md To Do — explicitly NOT launch blockers)
 
-- [ ] Provider availability calendar
-- [ ] Client deposit on booking
-- [ ] ID verification + blue tick for paid + admin-approved providers
+
+- [ ] M-Pesa (Daraja) live wiring — deferred: needs the VPS + domain + public
+  HTTPS callback URL first; the mock pay flow stays until then
+  - [ ] `POST /api/mpesa/stk-push`: call Daraja STK push with `MPESA_*` server
+    env vars (recording the attempt is already done)
+  - [ ] `POST /api/mpesa/callback`: verify authenticity (signature/IP),
+    idempotent confirm → extend subscription via `nextPeriod()` in one
+    transaction, audit it
+  - [ ] Public HTTPS callback URL configured (`MPESA_CALLBACK_URL`)
+  - [ ] End-to-end sandbox test: pay → active → listing visible → expiry → hidden
+  - [ ] Duplicate-callback test: no double extension for one payment
+- [ ] Client deposit on booking (waits on live M-Pesa — parked with Daraja)
 
 ## Working agreement
 

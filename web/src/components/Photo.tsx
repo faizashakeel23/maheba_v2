@@ -37,8 +37,10 @@ export default function Photo({
       </div>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
+  // Plain <img> is intentional: sources are local/DB paths, no remote
+  // optimization needed.
   return (
+    /* eslint-disable-next-line @next/next/no-img-element */
     <img
       src={src}
       alt={alt}

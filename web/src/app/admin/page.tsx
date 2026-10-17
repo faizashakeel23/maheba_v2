@@ -26,6 +26,7 @@ import {
   fetchAudit,
   fetchPayments,
   runExpirySweep,
+  setIdVerified,
   type AdminPayment,
   type AdminUserRow,
 } from "@/lib/api";
@@ -226,6 +227,12 @@ export default function AdminPage() {
     refresh();
   };
 
+  // Blue tick has no demo-store equivalent — offline it silently no-ops.
+  const flipVerified = async (id: string, current: boolean) => {
+    await setIdVerified(id, !current);
+    refresh();
+  };
+
   const submitAdmin = async () => {
     const res = await createAdminUser({
       name: newName,
@@ -376,7 +383,13 @@ export default function AdminPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <button onClick={() => setExpanded(open ? null : p.id)} className="text-left">
                       <p className="font-display text-2xl leading-none text-plum-900">
-                        {p.business_name} {open ? "▾" : "▸"}
+                        {p.business_name}
+                        {p.id_verified && (
+                          <span className="ml-1 align-middle text-lg text-sky-500" title="ID verified">
+                            ✔
+                          </span>
+                        )}{" "}
+                        {open ? "▾" : "▸"}
                       </p>
                       <p className="text-xs font-bold text-plum-500">
                         {p.category} · {p.location} · ★ {Number(p.rating).toFixed(1)}
@@ -395,6 +408,21 @@ export default function AdminPage() {
                       <p className="mt-1 text-xs font-bold text-plum-500">
                         {p.services.length} services · {p.portfolio.length} portfolio photos
                       </p>
+                      {!!p.id_document_url && (
+                        <p className="mt-1 text-xs">
+                          <a
+                            href={`/api/id-docs/${p.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-extrabold text-sky-600 underline"
+                          >
+                            View submitted ID ⧉
+                          </a>
+                          <span className="ml-2 font-bold text-plum-500">
+                            {p.id_verified ? "✔ verified" : "awaiting your check"}
+                          </span>
+                        </p>
+                      )}
                       {isVisible(p, now) && (
                         <Link href={`/p/${p.id}`} className="mt-1 inline-block text-xs font-extrabold text-blush-600 underline">
                           View public page →
@@ -421,6 +449,9 @@ export default function AdminPage() {
                             Reject
                           </button>
                         )}
+                        <button onClick={() => void flipVerified(p.id, p.id_verified)} className={`${btn} bg-sky-500`}>
+                          {p.id_verified ? "Unverify" : "Verify ✓"}
+                        </button>
                       </div>
                     </div>
                   )}

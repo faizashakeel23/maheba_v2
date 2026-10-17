@@ -24,6 +24,14 @@ export interface PortfolioItem {
   caption: string;
 }
 
+export interface Post {
+  id: string;
+  body: string;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Provider {
   id: string;
   business_name: string;
@@ -34,6 +42,10 @@ export interface Provider {
   whatsapp: string;
   instagram: string;
   status: ProviderStatus;
+  /** Admin-verified ID — blue tick, shown on paid + approved listings only */
+  id_verified: boolean;
+  /** Private vault filename of the submitted ID — admin eyes only, never public */
+  id_document_url: string | null;
   avatar: string;
   cover_image: string;
   rating: number;
@@ -42,6 +54,7 @@ export interface Provider {
   subscription_end: string | null;
   services: Service[];
   portfolio: PortfolioItem[];
+  posts: Post[];
 }
 
 export interface Subscription {
