@@ -85,8 +85,14 @@ all data routes are owner/admin-gated with demo-store fallbacks offline.
 
 ## 4. Mobile production build
 
-- [ ] `npx expo-doctor` fully green (1 warning left: `.expo/` gitignore — fixed?)
-- [ ] EAS project configured (`eas.json`), Android package `com.maheba.app` kept
+- [x] `npx expo-doctor` fully green 21/21 (expo ~57.0.31 + expo-router
+  ~57.0.29 bumps, splash-screen plugin added, `.expo/` warning resolved)
+- [x] EAS project configured (`eas.json`), Android package `com.maheba.app` kept
+- [x] First device-test build: `preview` APK with
+  `EXPO_PUBLIC_API_URL=http://192.168.1.106:3000` (PC LAN IP), build 33d78c12
+  (v1.0.0 build 1, keystore `g9yXgFSo6O` on Expo server) — eager `tsc` clean
+- [ ] Icons, splash, version bump in `app.json`; test on a real device via dev build
+- [ ] Production API URL baked in; guest booking + dashboards tested on device
 - [ ] Icons, splash, version bump in `app.json`; test on a real device via dev build
 - [ ] Production API URL baked in; guest booking + dashboards tested on device
 - [ ] Store listing assets ready (screenshots, description, privacy note)
