@@ -29,7 +29,15 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ba8bed39-dc8b-4565-848a-257ccf22c1c7"
+      }
+    },
+    "owner": "salimjjuma"
   }
 }
